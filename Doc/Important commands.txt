@@ -1,3 +1,16 @@
 Configure GUI / headless
 1. sudo raspi-config
 2. go to System Options → Boot / Auto Login → Console (without desktop).
+|
+
+
+Install python
+
+Installing Node.js (in terminal)
+1. get stuff  
+        curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+2. install stuff
+        sudo apt install -y nodejs
+3. verify stuff
+        node -v
+        npm -v
