@@ -3,3 +3,7 @@
 2. START PYTHON SCRIPT
         -> python main.py
         -> uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+
+3. START FRONT END SERVER
+        -> yarn dev -p 3000
