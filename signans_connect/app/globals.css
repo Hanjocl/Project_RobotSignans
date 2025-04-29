@@ -1,7 +1,15 @@
 @import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 @plugin "daisyui" {
   themes: light --default, dark --prefersdark, cupcake;
 }
+
+body {
+  overflow: hidden;
+}
+
 /*
 :root {
   --background: #ffffff;

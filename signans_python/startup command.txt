@@ -1,0 +1,5 @@
+1. START VIRTUAL ENVIRONMENT IN FOLDER:
+        -> source venv/bin/activate
+2. START PYTHON SCRIPT
+        -> python main.py
+        -> uvicorn main:app --host 0.0.0.0 --port 8000 --reload
