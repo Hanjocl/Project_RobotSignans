@@ -4,7 +4,6 @@ import { getContext } from "../context/ConnectedContext";
 const ArmingButton = () => {
   const { state, setState, connected } = getContext();
   const [isPressed, setIsPressed] = useState(false);
-  const [status, setStatus] = useState('idle');
   const [pendingResponse, setPendingResponse] = useState(false); // New state for waiting period
   const socketRef = useRef<WebSocket | null>(null);
 
@@ -68,14 +67,39 @@ const ArmingButton = () => {
     buttonText = 'START DRAWING';
   }
 
+  const socket_cmd = useRef<WebSocket | null>(null);
+  useEffect(() => {
+      // Connect to WebSocket server
+      socket_cmd.current= new WebSocket("ws://localhost:8000/ws/commander/");
+  
+      socket_cmd.current.onmessage = (event) => {
+      };
+  
+      socket_cmd.current.onclose = () => {
+      };
+  
+      return () => {
+        socket_cmd.current?.close();
+      };
+    }, []);
+
+  const sendCommand = (cmd: string) => {
+    if (socket_cmd.current && socket_cmd.current.readyState === WebSocket.OPEN) {
+      socket_cmd.current.send(cmd);
+    }
+  };
+
   return (
-    <button
-      onClick={StartDrawingSequence}
-      className={buttonClass}
-      aria-disabled={!connected || pendingResponse}
-    >
-      {buttonText}
-    </button>
+    <div>
+      <button
+        onClick={StartDrawingSequence}
+        className={buttonClass}
+        aria-disabled={!connected || pendingResponse}
+      >
+        {buttonText}
+      </button>
+      <button className='btn btn-error' onClick={() => sendCommand(`M112`)}>STOP</button>
+    </div>
   );
 };
 

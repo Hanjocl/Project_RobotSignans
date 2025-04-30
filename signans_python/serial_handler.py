@@ -2,7 +2,6 @@ import serial
 import serial.tools.list_ports
 from log_manager import create_log
 from main import app
-import asyncio
 
 
 def find_esp32_port():

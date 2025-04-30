@@ -10,7 +10,7 @@ import { getContext } from "../context/ConnectedContext";
 export default function Dashboard() {
   const [loading, setLoading] = useState(false);
 
-  const { connected } = getContext();
+  const { state, connected } = getContext();
 
   const toggleLoading = () => {
     setLoading((prev) => !prev); // Toggle the loading state between true and false
@@ -128,7 +128,7 @@ export default function Dashboard() {
               value={manualInput}
               onChange={handleInputChange}
             />
-            <button className={`btn justify-start w-1/5 ${!connected ? 'btn-disabled' : 'btn-outline btn-error'}`}  onClick={sendManualInput}>Send</button>
+            <button className={`btn justify-start w-1/5 ${!connected ? 'btn-disabled' : 'btn-outline btn-error'}`}  onClick={() => state != "Drawing" ? manualInput : alert("Cannot send commands while drawing!") }>Send</button>
           </div>
           <ProgressBar animate={loading} />
           
@@ -139,14 +139,14 @@ export default function Dashboard() {
         <div className="flex flex-col flex-grow gap-4 bg-base-200 p-4 rounded  h-1/3 w-full">
           {['X', 'Y', 'Z'].map((axis) => (
             <div key={axis} className="flex items-center gap-4 h-1/3 w-full">
-              <button className="btn btn-outline w-1/12" onClick={() => sendRelativeMove(`G0 ${axis}-10`) } >-10</button>
-              <button className="btn btn-outline w-1/12" onClick={() => sendRelativeMove(`G0 ${axis}-5`) } >-5</button>
-              <button className="btn btn-outline w-1/12" onClick={() => sendRelativeMove(`G0 ${axis}-0`) } >-1</button>
+              <button className="btn btn-outline w-1/12" onClick={() => state != "Drawing" ? sendRelativeMove(`G0 ${axis}-10`) : alert("Cannot send commands while drawing!") } >-10</button>
+              <button className="btn btn-outline w-1/12" onClick={() => state != "Drawing" ? sendRelativeMove(`G0 ${axis}-5`) : alert("Cannot send commands while drawing!") } >-5</button>
+              <button className="btn btn-outline w-1/12" onClick={() => state != "Drawing" ? sendRelativeMove(`G0 ${axis}-1`) : alert("Is drawing!") } >-1</button>
               <div className="text-center w-full min-w-[80px]">Position of Axis {axis}</div>
-              <button className="btn btn-outline w-1/12" onClick={() => sendRelativeMove(`G0 ${axis}1`) } >+1</button>
-              <button className="btn btn-outline w-1/12" onClick={() => sendRelativeMove(`G0 ${axis}5`) } >+5</button>
-              <button className="btn btn-outline w-1/12" onClick={() => sendRelativeMove(`G0 ${axis}10`) } >+10</button>
-              <button className="btn btn-sm btn-info w-1/6" onClick={() => sendCommand(`G28 ${axis}`) } >home </button>
+              <button className="btn btn-outline w-1/12" onClick={() => state != "Drawing" ? sendRelativeMove(`G0 ${axis}1`) : alert("Cannot send commands while drawing!") } >+1</button>
+              <button className="btn btn-outline w-1/12" onClick={() => state != "Drawing" ? sendRelativeMove(`G0 ${axis}5`) : alert("Cannot send commands while drawing!") } >+5</button>
+              <button className="btn btn-outline w-1/12" onClick={() => state != "Drawing" ? sendRelativeMove(`G0 ${axis}10`) : alert("Cannot send commands while drawing!") } >+10</button>
+              <button className="btn btn-sm btn-info w-1/6" onClick={() => state != "Drawing" ? sendCommand(`G28 ${axis}`) : alert("Cannot send commands while drawing!") } >home </button>
             </div>
           ))}
         </div>
