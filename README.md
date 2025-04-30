@@ -14,6 +14,23 @@ TO-DO:
     ? -> Connect status of connection
     ? -> Make button work 
 
+
+setup:
+- Home axis
+- find worksblade in 3d space + camera view
+loop:
+- use workblade to make GCODE for drawing
+- go to camera view
+- draw again!
+other:
+-Make loop stoppable at anytime
+- return to resting position
+- check list to see if it is allowed  to loop
+- always check if is connected ->
+
+
+
+First make the 
 ---
 
 UPDATE-LOG:

@@ -3,19 +3,14 @@ import React from "react";
 import { useState, useEffect, useRef } from 'react';
 import ProgressBar from '../components/ProgressBar';
 import SidebarSteps from '../components/SidebarSteps';
-import { useConnected } from "../context/ConnectedContext";
+import { getContext } from "../context/ConnectedContext";
 
 
 // pages/index.js
 export default function Dashboard() {
-
-  const socket_cmd = useRef<WebSocket | null>(null);
-
-  const [manualInput, setManualInput] = useState<string>('');
-
   const [loading, setLoading] = useState(false);
 
-  const { connected } = useConnected();
+  const { connected } = getContext();
 
   const toggleLoading = () => {
     setLoading((prev) => !prev); // Toggle the loading state between true and false
@@ -40,28 +35,68 @@ export default function Dashboard() {
     "Processing request..."
   ]);
 
+  {/* Manual Input */}
+  const socket_cmd = useRef<WebSocket | null>(null);
+
+  const [logs, setLogs] = useState<string[]>([]);
+  const [manualInput, setManualInput] = useState<string>('');
+
+  useEffect(() => {
+    // Connect to WebSocket server
+    socket_cmd.current= new WebSocket("ws://localhost:8000/ws/commander/");
+
+    socket_cmd.current.onmessage = (event) => {
+      setLogs((prevLogs) => [...prevLogs, `${event.data}`]);
+    };
+
+    socket_cmd.current.onclose = () => {
+      setLogs((prevLogs) => [...prevLogs, "Disconnected from server"]);
+    };
+
+    return () => {
+      socket_cmd.current?.close();
+    };
+  }, []);
+
+  const sendManualInput = (): void => {
+    console.log(`Manual Input: ${manualInput}`);
+    if (socket_cmd.current && socket_cmd.current.readyState === WebSocket.OPEN) {
+      socket_cmd.current.send(manualInput);
+    }
+  };
+
+  const sendCommand = (cmd: string) => {
+    if (socket_cmd.current && socket_cmd.current.readyState === WebSocket.OPEN) {
+      alert(`A homing move (${cmd}) will be send. \n MAKE SURE THE ARM IS NOT CONNECTED TO THE MOTORS. \n\n If you wish to CANCEL, RELOAD the page.`);
+      socket_cmd.current.send(cmd);
+    }
+  };
+
+  const sendRelativeMove = (cmd: string) => {
+    if (socket_cmd.current && socket_cmd.current.readyState === WebSocket.OPEN) {
+      socket_cmd.current.send("G91");
+      socket_cmd.current.send(cmd);
+      socket_cmd.current.send("G90");
+    }
+  };
+
     // Handle manual input change
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setManualInput(event.target.value);
   };
 
+  const logRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (logRef.current) {
+      logRef.current.scrollTo({ top: logRef.current.scrollHeight, behavior: 'smooth' });
+    }
+  }, [logs]);
+
   const handleClick = (step : string) => {
     console.log(`Clicked on ${step}`);
     // You can perform any action based on the clicked step, 
     // such as navigating to another page, updating the UI, etc.
-  };
-
-  const sendManualInput = (): void => {
-    console.log(`Manual Input: ${manualInput}`);
-    // You can modify this to send the manual input to a WebSocket or any other API
-    alert(`Sending: ${manualInput}`);
-  };
-
-  const sendCommand = (cmd: string) => {
-    if (socket_cmd.current && socket_cmd.current.readyState === WebSocket.OPEN) {
-      socket_cmd.current.send(cmd);
-      alert(`Sending: ${cmd}`);
-    }
   };
   
   return (
@@ -76,17 +111,14 @@ export default function Dashboard() {
 
       {/* Terminal & Controls */}
       <div className="w-1/2 flex flex-col space-y-4 h-full">
-        <div className="bg-base-200 p-4 rounded flex flex-col h-3/3">
-          <div className="flex flex-col-reverse gap-2 overflow-y-auto flex-grow p-2 py-4">
-            {/* Terminal messages list */}
-            <ul className="w-full list-none p-0 m-0">
-              {messages.map((message, index) => (
-                <li key={index} className="text-sm">{message}</li>
-              ))}
-            </ul>
+        {/* Terminal*/}
+        <div className="bg-base-200 p-4 rounded flex flex-col h-full">
+
+          {/* Messages List */}
+          <div ref={logRef} className="log-output max-h-[60vh] overflow-auto text-sm">
+            <pre className="whitespace-pre-wrap">{logs.join('\n')}</pre>
           </div>
 
-          
           {/* Manual Input and Send Button inside the Terminal */}
           <div className="mt-auto flex gap-2">
             <input
@@ -107,10 +139,14 @@ export default function Dashboard() {
         <div className="flex flex-col flex-grow gap-4 bg-base-200 p-4 rounded  h-1/3 w-full">
           {['X', 'Y', 'Z'].map((axis) => (
             <div key={axis} className="flex items-center gap-4 h-1/3 w-full">
-              <button className="btn btn-outline w-1/4">-</button>
+              <button className="btn btn-outline w-1/12" onClick={() => sendRelativeMove(`G0 ${axis}-10`) } >-10</button>
+              <button className="btn btn-outline w-1/12" onClick={() => sendRelativeMove(`G0 ${axis}-5`) } >-5</button>
+              <button className="btn btn-outline w-1/12" onClick={() => sendRelativeMove(`G0 ${axis}-0`) } >-1</button>
               <div className="text-center w-full min-w-[80px]">Position of Axis {axis}</div>
-              <button className="btn btn-outline w-1/4">+</button>
-              <button className="btn btn-sm btn-info w-1/6">home </button>
+              <button className="btn btn-outline w-1/12" onClick={() => sendRelativeMove(`G0 ${axis}1`) } >+1</button>
+              <button className="btn btn-outline w-1/12" onClick={() => sendRelativeMove(`G0 ${axis}5`) } >+5</button>
+              <button className="btn btn-outline w-1/12" onClick={() => sendRelativeMove(`G0 ${axis}10`) } >+10</button>
+              <button className="btn btn-sm btn-info w-1/6" onClick={() => sendCommand(`G28 ${axis}`) } >home </button>
             </div>
           ))}
         </div>
@@ -118,34 +154,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-
-
-
-/*
-const [logs, setLogs] = useState<string[]>([]);
-  const socket_cmd = useRef<WebSocket | null>(null);
-
-  const sendCommand = (cmd: string) => {
-    if (socket_cmd.current && socket_cmd.current.readyState === WebSocket.OPEN) {
-      socket_cmd.current.send(cmd);
-      setLogs((prevLogs) => [...prevLogs, `You: ${cmd}`]);
-    }
-  };
-
-  useEffect(() => {
-    // Connect to WebSocket server
-    socket_cmd.current= new WebSocket("ws://localhost:8000/ws/commander/");
-
-    socket_cmd.current.onmessage = (event) => {
-      setLogs((prevLogs) => [...prevLogs, `Server: ${event.data}`]);
-    };
-
-    socket_cmd.current.onclose = () => {
-      setLogs((prevLogs) => [...prevLogs, "Disconnected from server"]);
-    };
-
-    return () => {
-      socket_cmd.current?.close();
-    };
-  }, []);*/

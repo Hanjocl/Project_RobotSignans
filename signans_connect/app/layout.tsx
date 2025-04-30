@@ -3,17 +3,27 @@
 import "./globals.css";
 import { useState, useEffect, useRef} from 'react';
 import { ConnectedProvider } from '../context/ConnectedContext';
-import { useConnected } from "../context/ConnectedContext";
+import { getContext } from "../context/ConnectedContext";
+import ArmingButton from '../components/ArmingButton';
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const ConnectedStatus = () => {
+    const { connected } = getContext(); // Access context here
+
+    return (
+      <div className={`flex-1 btn justify-start ${connected ? 'bg-success text-white' : 'bg-error text-white'}`}>
+        {connected ? 'Connected to ESP32' : 'Connecting...'}
+      </div>
+    );
+  }
 
   return (
     <html data-theme="silk">
-      <body>
+      <body >
         <ConnectedProvider>
           <div className="h-screen bg-base-100 text-base-content p-2 flex flex-col ">
             {/* Top Navigation */}
@@ -40,31 +50,3 @@ export default function RootLayout({
   )
 }
 
-
-const ConnectedStatus = () => {
-  const { connected } = useConnected(); // Access context here
-
-  return (
-    <div className={`flex-1 btn justify-start ${connected ? 'bg-success text-white' : 'bg-error text-white'}`}>
-      {connected ? 'Connected to ESP32' : 'Connecting...'}
-    </div>
-  );
-}
-
-const ArmingButton = () => {
-  const { connected } = useConnected(); // Access context here
-  const [isPressed, setIsPressed] = useState(false);
-
-  const toggleButton = () => {
-    setIsPressed((prev) => !prev);
-  };
-
-  return (
-    <button
-      onClick={toggleButton}
-      className={`btn ${!connected ? 'btn-disabled' : isPressed ? 'btn-error' : 'btn-outline btn-neutral'}`}
-    >
-      {isPressed ? 'ARM DRAWING' : 'START DRAWING'}
-    </button>
-  );
-}
