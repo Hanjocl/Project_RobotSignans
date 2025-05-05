@@ -1,71 +1,40 @@
 'use client';
+import React from 'react';
 
-import React, { useState, useEffect, useRef } from 'react';
 
-interface SidebarStepsProps {
-  onStepClick: (step: string) => void;  // Callback to handle step clicks
+export interface StepStatus {
+  step: string;
+  status: 'pending' | 'complete';
 }
 
-const SidebarSteps: React.FC<SidebarStepsProps> = ({ onStepClick }) => {
-  // WebSocket for managing step statuses
-  const socket = useRef<WebSocket | null>(null);
+interface SidebarStepsProps {
+  steps: StepStatus[]; // Use StepStatus interface for the steps prop
+  selectedStep: string;
+  onStepClick: (step: string) => void;
+}
 
-  // States to track steps' statuses
-  const [stepStatuses, setStepStatuses] = useState({
-    'home-axis': false,
-    'connect-wires': false,
-    'pre-draw-checklist': false,
-    'send-it': false,
-  });
-
-  // Connect to WebSocket and receive step updates
-  useEffect(() => {
-    socket.current = new WebSocket("ws://localhost:8000/ws/steps/");
-
-    socket.current.onmessage = (event) => {
-      const data = JSON.parse(event.data); // Assuming the server sends JSON data with step statuses
-      setStepStatuses(data);
-    };
-
-    socket.current.onclose = () => {
-      console.log("WebSocket connection closed.");
-    };
-
-    return () => {
-      socket.current?.close();
-    };
-  }, []);
-
+export default function SidebarSteps({ steps, selectedStep, onStepClick }: SidebarStepsProps) {
   return (
-    <div className="w-1/5 bg-base-200 p-2 rounded flex flex-col space-y-2 min-w-[200px] overflow-hidden">
-      <ul className="steps steps-vertical">
-        <li
-          className={`step cursor-pointer hover:bg-gray-200 ${stepStatuses['home-axis'] ? 'step-primary' : ''}`}
-          onClick={() => onStepClick('home-axis')}
-        >
-          Home Axis
-        </li>
-        <li
-          className={`step cursor-pointer hover:bg-gray-200 ${stepStatuses['connect-wires'] ? 'step-primary' : ''}`}
-          onClick={() => onStepClick('connect-wires')}
-        >
-          Connect wires
-        </li>
-        <li
-          className={`step cursor-pointer hover:bg-gray-200 ${stepStatuses['pre-draw-checklist'] ? 'step-primary' : ''}`}
-          onClick={() => onStepClick('pre-draw-checklist')}
-        >
-          Pre-Draw Checklist
-        </li>
-        <li
-          className={`step cursor-pointer hover:bg-gray-200 ${stepStatuses['send-it'] ? 'step-primary' : ''}`}
-          onClick={() => onStepClick('send-it')}
-        >
-          Send It!
-        </li>
+    <div className="w-1/4 bg-base-200 p-4 rounded">
+      <h2 className="text-lg font-bold mb-4">Setup Steps</h2>
+      <ul className="steps steps-vertical w-full">
+        {steps.map(({ step, status }) => {
+          const isActive = selectedStep === step;
+          const isComplete = status === 'complete';
+
+          return (
+            <li
+              key={step}
+              onClick={() => onStepClick(step)}
+              className={`step cursor-pointer transition-all
+                ${isComplete ? 'step-success' : ''}
+                ${isActive ? 'text-yellow-600 font-bold' : ''}`}
+            >
+              {step}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
-};
-
-export default SidebarSteps;
+}

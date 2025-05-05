@@ -1,8 +1,6 @@
-'use client'; // If you're using the App Router (Next.js 13+)
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-
-// Define the context type
+// Define the context types for connected state
 interface ConnectedContextType {
   connected: boolean;
   setConnected: React.Dispatch<React.SetStateAction<boolean>>;
@@ -10,14 +8,14 @@ interface ConnectedContextType {
   setState: React.Dispatch<React.SetStateAction<string>>;
 }
 
-// Create context with default value of `undefined`
 const ConnectedContext = createContext<ConnectedContextType | undefined>(undefined);
 
+// Provider for connection-related state
 export const ConnectedProvider = ({ children }: { children: ReactNode }) => {
   const [connected, setConnected] = useState(false);
   const [state, setState] = useState<string>('idle');
 
-  // Connect to WebSocket server
+  // Connect to WebSocket server for connection status
   useEffect(() => {
     const socket = new WebSocket("ws://localhost:8000/ws/connectionStatus/");
 
@@ -44,18 +42,11 @@ export const ConnectedProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-export const getContext = (): ConnectedContextType => {
+// Custom hook to use ConnectedContext
+export const getConnectionStatus = (): ConnectedContextType => {
   const context = useContext(ConnectedContext);
   if (!context) {
-    throw new Error('useConnected must be used within a ConnectedProvider');
-  }
-  return context;
-};
-
-export const setState = (): ConnectedContextType => {
-  const context = useContext(ConnectedContext);
-  if (!context) {
-    throw new Error('useConnected must be used within a ConnectedProvider');
+    throw new Error('useConnectedContext must be used within a ConnectedProvider');
   }
   return context;
 };

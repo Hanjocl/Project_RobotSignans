@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { getContext } from "../context/ConnectedContext";
+import { getConnectionStatus } from "../context/ConnectedContext";
+import { getStepStatus } from "../context/StepsContext";
 
 const ArmingButton = () => {
-  const { state, setState, connected } = getContext();
+  const { state, setState, connected } = getConnectionStatus();
+  const { steps } = getStepStatus();
   const [isPressed, setIsPressed] = useState(false);
   const [pendingResponse, setPendingResponse] = useState(false); // New state for waiting period
   const socketRef = useRef<WebSocket | null>(null);
@@ -53,9 +55,15 @@ const ArmingButton = () => {
   let buttonClass = 'btn';
   let buttonText = '';
 
+  // Check if all steps are completed
+  const allStepsCompleted = steps.every(step => step.status === 'complete');
+
   if (!connected) {
     buttonClass = 'btn btn-disabled';
     buttonText = 'DISCONNECTED';
+  } else if (!allStepsCompleted) {
+    buttonClass = 'btn btn-disabled';
+    buttonText = 'COMPLETE ALL STEPS';
   } else if (pendingResponse) {
     buttonClass = 'btn btn-warning';
     buttonText = 'FINISHING LAST MOVE...';
@@ -70,18 +78,20 @@ const ArmingButton = () => {
   const socket_cmd = useRef<WebSocket | null>(null);
   useEffect(() => {
       // Connect to WebSocket server
-      socket_cmd.current= new WebSocket("ws://localhost:8000/ws/commander/");
-  
+      socket_cmd.current = new WebSocket("ws://localhost:8000/ws/commander/");
+
       socket_cmd.current.onmessage = (event) => {
+        // Handle incoming messages here
       };
-  
+
       socket_cmd.current.onclose = () => {
+        // Handle socket close
       };
-  
+
       return () => {
         socket_cmd.current?.close();
       };
-    }, []);
+  }, []);
 
   const sendCommand = (cmd: string) => {
     if (socket_cmd.current && socket_cmd.current.readyState === WebSocket.OPEN) {
@@ -94,7 +104,7 @@ const ArmingButton = () => {
       <button
         onClick={StartDrawingSequence}
         className={buttonClass}
-        aria-disabled={!connected || pendingResponse}
+        aria-disabled={!connected || pendingResponse || !allStepsCompleted}
       >
         {buttonText}
       </button>
