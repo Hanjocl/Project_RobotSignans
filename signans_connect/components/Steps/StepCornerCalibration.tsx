@@ -6,7 +6,7 @@ type StepCornerCalibrationProps = {
 };
 
 type PositionStatus = "pending" | "captured" | "error";
-type Coordinates = { x: number; y: number; z: number } | null;
+type Coordinates = { X: number; Y: number; Z: number } | null;
 
 const StepCornerCalibration: React.FC<StepCornerCalibrationProps> = ({
   handleStepComplete,
@@ -35,7 +35,7 @@ const StepCornerCalibration: React.FC<StepCornerCalibrationProps> = ({
 
   // Use effect to handle WebSocket connection and communication
   useEffect(() => {
-    socketRef.current = new WebSocket("ws://localhost:8000/ws/capturePosition/");
+    socketRef.current = new WebSocket("ws://localhost:8000/ws/captureCornerPosition/");
 
     socketRef.current.onopen = () => {
       console.log("Corner position socket connected");
@@ -47,14 +47,19 @@ const StepCornerCalibration: React.FC<StepCornerCalibrationProps> = ({
       if (data.status === "captured" && data.positionName && data.position) {
         const index = positionNames.indexOf(data.positionName);
         if (index !== -1) {
-          updatePosition(index, data.position);
+          const coordObject = {
+            X: data.position[0],
+            Y: data.position[1],
+            Z: data.position[2],
+          };
+          updatePosition(index, coordObject);
         }
       }
 
       if (data.status === "error" && data.message) {
         console.error(data.message);
       }
-      console.log("DEBUUG")
+      console.log(data.position[2])
     };
 
     return () => {
@@ -93,12 +98,14 @@ const StepCornerCalibration: React.FC<StepCornerCalibrationProps> = ({
     }
   };
 
-  useEffect(() => {
+  const handleCapture = () => {
     if (Object.values(capturedPositions).every((position) => position !== null)) {
       console.log("All positions captured. Completing Corner Calibration...");
       handleStepComplete("Corner Calibration");
+    } else {
+      alert("Not all positions were captured")
     }
-  }, [capturedPositions]); // This effect runs whenever positionsStatus changes
+  };
 
   // Get button color based on the position status
   const getButtonColor = (status: PositionStatus) => {
@@ -127,10 +134,10 @@ const StepCornerCalibration: React.FC<StepCornerCalibrationProps> = ({
               <div className="text-xs mt-1 text-gray-500 text-center">
                 {coords ? (
                   <>
-                    X: {coords.x.toFixed(1)} |
-                    Y: {coords.y.toFixed(1)} |
-                    Z: {coords.z.toFixed(1)}
-                  </>
+                  X: {coords.X != null ? coords.X.toFixed(2) : 'N/A'} |
+                  Y: {coords.Y != null ? coords.Y.toFixed(2) : 'N/A'} |
+                  Z: {coords.Z != null ? coords.Z.toFixed(1) : 'N/A'}
+                </>
                 ) : (
                   <span className="text-gray-400">No coordinates set yet</span>
                 )}
@@ -149,7 +156,6 @@ const StepCornerCalibration: React.FC<StepCornerCalibrationProps> = ({
         })}
       </div>
 
-
       <p className="mt-4 text-center">
         Status:{" "}
         {status == "captured" ? (
@@ -158,6 +164,22 @@ const StepCornerCalibration: React.FC<StepCornerCalibrationProps> = ({
           <span className="text-warning">In Progress</span>
         )}
       </p>
+
+      {/* CALIBRATION & STATUS */}
+      <div className="text-center mt-6">
+        <button className="btn btn-outline" onClick={handleCapture}>
+          Capture Position
+        </button>
+
+        <p className="mt-2">
+          Status:{" "}
+          {status === "captured" ? (
+            <span className="text-success font-semibold">Complete</span>
+          ) : (
+            <span className="text-warning">In Progress</span>
+          )}
+        </p>
+      </div>
     </div>
   );
 };

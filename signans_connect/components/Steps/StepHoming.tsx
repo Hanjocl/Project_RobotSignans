@@ -19,7 +19,7 @@ const StepHoming: React.FC<StepHomingProps> = ({
   });
 
   const handleButtonClick = (axis: string) => {
-    sendHomingCommand(`G28 ${axis.toUpperCase()}`);
+    //sendHomingCommand(`G28 ${axis.toUpperCase()}`);
     setPressed((prev) => ({
       ...prev,
       [axis]: true,
@@ -28,7 +28,7 @@ const StepHoming: React.FC<StepHomingProps> = ({
   };
 
   return (
-    <div className="min-h-screen flex justify-center items-center">
+    <div className="h-full flex justify-center items-center">
       <div className="text-center">
         <h2 className="text-xl mb-4">Homing Step</h2>
         <div className="mb-4">

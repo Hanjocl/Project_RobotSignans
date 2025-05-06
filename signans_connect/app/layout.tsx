@@ -32,8 +32,8 @@ export default function RootLayout({
               <div className="navbar shadow-lg flex space-x-2 mb-4">
                 
                 <div role="tablist" className="tabs tabs-box w-1/5">
-                  <a role="tab" className="tab w-1/3 tab-active">OVERVIEW</a>
-                  <a role="tab" className="tab w-1/3">SETUP</a>
+                  <a role="tab" className="tab w-1/3 tab-active">SETUP</a>
+                  <a role="tab" className="tab w-1/3">OVERVIEW</a>
                   <a role="tab" className="tab w-1/3">CAMERA</a>
                 </div> 
                   
