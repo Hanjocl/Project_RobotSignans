@@ -1,4 +1,4 @@
-from fastapi import WebSocket, WebSocketDisconnect, APIRouter
+from fastapi import WebSocket, WebSocketDisconnect, APIRouter, Request
 from fastapi.responses import StreamingResponse
 from fastapi.websockets import WebSocketDisconnect, WebSocketState
 import json
@@ -7,7 +7,8 @@ import re
 import cv2
 import time
 import os
-from state import shared_positions, shared_status, Position3D
+import numpy as np
+from state import shared_positions, shared_status
 from main import app
 from device_scanner import getConnectionStatus
 from serial_handler import write_to_esp32
@@ -16,9 +17,6 @@ from draw_loop import main_draw_loop
 from camera_capture import generate_frames, camera
 
 router = APIRouter()
-
-print("DEBUG")
-
 
 @router.websocket("/ws/connectionStatus/")
 async def websocket_status(websocket: WebSocket):
@@ -85,15 +83,17 @@ async def websocket_steps(websocket: WebSocket):
 
 @router.websocket("/ws/captureCornerPosition/")
 async def websocket_capture_position(websocket: WebSocket):
-    await websocket.accept()        
+    await websocket.accept()
 
-    # Send back already captured positions upon connection
-    for name, position in shared_positions.corner_positions.items():
-        if position is not None:
+    # Send back already captured positions
+    for name in shared_positions.get_corners():
+        array = getattr(shared_positions, name)
+        position = array.tolist()
+        if position is not None and np.any(array != None):
             await websocket.send_json({
                 "status": "captured",
                 "positionName": name,
-                "position": position.to_list()
+                "position": position
             })
 
     while websocket.client_state == WebSocketState.CONNECTED:
@@ -104,27 +104,22 @@ async def websocket_capture_position(websocket: WebSocket):
             command = data.get("command")
             position_name = data.get("positionName")
 
-            if command == "capture" and position_name in shared_positions.corner_positions:
-
+            if command == "capture" and position_name in shared_positions.get_corners():
                 response = write_to_esp32("M114")
 
                 match = re.search(r'X:([-\d.]+)\s+Y:([-\d.]+)\s+Z:([-\d.]+)', response)
                 if not match:
                     raise ValueError("Failed to parse position from M114 response")
 
-                captured_position = Position3D(
-                    float(match.group(1)),
-                    float(match.group(2)),
-                    float(match.group(3))
-                )
+                captured_position = np.array([float(match.group(1)), float(match.group(2)), float(match.group(3))])
+                print("DEBUG")
 
-                shared_positions.corner_positions[position_name] = captured_position
-                print(shared_positions.corner_positions["topLeft"].Z)
+                setattr(shared_positions, position_name, captured_position)
 
                 await websocket.send_json({
                     "status": "captured",
                     "positionName": position_name,
-                    "position": captured_position.to_list()
+                    "position": captured_position.tolist()
                 })
 
             else:
@@ -143,18 +138,19 @@ async def websocket_capture_position(websocket: WebSocket):
                 "message": str(e)
             })
 
+
 @router.websocket("/ws/captureCameraPosition/")
 async def websocket_capture_position(websocket: WebSocket):
     await websocket.accept()        
 
     # Send back already captured camera position on connection
-    for name, position in shared_positions.camera_position.items():
-        if position is not None:
-            await websocket.send_json({
-                "status": "captured",
-                "positionName": name,
-                "position": position  # Now a list: [x, y, z]
-            })
+    pos = shared_positions.cameraPosition
+    if pos is not None and np.any(pos != None):
+        await websocket.send_json({
+            "status": "captured",
+            "positionName": "cameraPosition",
+            "position": pos.tolist()  # Now a list: [x, y, z]
+        })
 
     while websocket.client_state == WebSocketState.CONNECTED:
         try:
@@ -172,18 +168,14 @@ async def websocket_capture_position(websocket: WebSocket):
                     raise ValueError("Failed to parse position from M114 response")
 
                 # Store as a list [x, y, z]
-                captured_position = [
-                    float(match.group(1)),
-                    float(match.group(2)),
-                    float(match.group(3))
-                ]
+                captured_position = np.array([float(match.group(1)), float(match.group(2)),float(match.group(3))])
 
-                shared_positions.camera_position[position_name] = captured_position
+                shared_positions.cameraPosition = captured_position
 
                 await websocket.send_json({
                     "status": "captured",
                     "positionName": position_name,
-                    "position": captured_position
+                    "position": captured_position.tolist()
                 })
 
             else:
@@ -207,6 +199,7 @@ async def websocket_capture_position(websocket: WebSocket):
 @router.websocket("/ws/drawLoopArming/")
 async def websocket_drawLoopArming(websocket: WebSocket):
     await websocket.accept()
+    
 
     # Send current state upon connection
     task = getattr(app.state, 'draw_task', None)
@@ -234,7 +227,7 @@ async def websocket_drawLoopArming(websocket: WebSocket):
         except WebSocketDisconnect:
             print("Client disconnected.")
 
-@app.post("/capture")
+@router.post("/capture")
 def capture_image():
     success, frame = camera.read()
     if not success:
@@ -248,12 +241,7 @@ def capture_image():
     # Return image path or public URL (if served)
     return {"filename": filename, "url": f"http://localhost:8000/captured/{filename}"}
 
-# Serve static files from captured_images/
-from fastapi.staticfiles import StaticFiles
-router.mount("/captured", StaticFiles(directory="captured_images"), name="captured")
-
-
-@app.get("/video")
+@router.get("/video")
 def video_feed():
     return StreamingResponse(generate_frames(),
                              media_type="multipart/x-mixed-replace; boundary=frame")

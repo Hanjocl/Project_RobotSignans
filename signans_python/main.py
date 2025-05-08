@@ -11,7 +11,6 @@ async def lifespan(app: FastAPI):
     from ws_routes import router as ws_router
     init_states(app)
     app.include_router(ws_router)
-    print("Routers registered:", app.router.routes)
     await asyncio.sleep(1)
 
     # Import to avoid circular imports
@@ -27,6 +26,18 @@ def init_states(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+origins = [
+    "http://localhost",  # Allow specific origins
+    "http://localhost:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 if __name__ == "__main__":    
     uvicorn.run("main:app", host="localhost", port=8000, reload=True)
