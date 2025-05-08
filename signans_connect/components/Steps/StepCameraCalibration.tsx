@@ -58,17 +58,22 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
 
   return (
     <div>
-      <h2 className="text-lg font-bold mb-4">Camera Calibration</h2>
+      {/* LAYOUT: camera + control panel side by side */}
+      <div className="flex flex-col lg:flex-row justify-center items-start gap-8 mb-6">
 
       {/* CAMERA VIEW */}
-      <div className="w-full max-w-lg mx-auto mb-6">
-        <div className="border border-gray-500 bg-black rounded-md overflow-hidden aspect-video">
-          <p className="text-center text-white pt-24">[ Camera Feed Placeholder ]</p>
-        </div>
+      <div className="border border-gray-500 bg-black rounded-md overflow-hidden aspect-video max-w-sm">
+        <figure className="origin-center">
+          <img
+            src="http://localhost:8000/video"
+            alt="Live Stream"
+            className=" rotate-90 w-full h-auto"
+          />
+        </figure>
       </div>
 
       {/* CONTROL PANEL */}
-      <div className="flex justify-center gap-16 mb-6">
+      <div className="flex justify-center gap-16">
         <div className="flex flex-col items-center space-y-4">
           {/* Y Axis */}
           <div className="flex flex-col items-center">
@@ -112,6 +117,7 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
             <button className="btn" onClick={() => relativeMove(`G0 Z-10`)}>-10</button>
           </div>
         </div>
+      </div>
       </div>
 
       {/* CALIBRATION & STATUS */}
