@@ -1,20 +1,24 @@
-from fastapi import WebSocket, WebSocketDisconnect, APIRouter, Response
+from fastapi import WebSocket, WebSocketDisconnect, APIRouter
 from fastapi.responses import StreamingResponse
 from fastapi.websockets import WebSocketDisconnect, WebSocketState
+import json
+import asyncio
+import re
+import cv2
+import time
+import os
+from state import shared_positions, shared_status, Position3D
+from main import app
 from device_scanner import getConnectionStatus
 from serial_handler import write_to_esp32
 from log_manager import get_logs
 from draw_loop import main_draw_loop
-from main import app
-import json
-import asyncio
-import re
 from camera_capture import generate_frames, camera
-import cv2
-import time
-from state import shared_positions, shared_status, Position3D
 
 router = APIRouter()
+
+print("DEBUG")
+
 
 @router.websocket("/ws/connectionStatus/")
 async def websocket_status(websocket: WebSocket):
