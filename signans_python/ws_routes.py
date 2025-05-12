@@ -1,4 +1,4 @@
-from fastapi import WebSocket, WebSocketDisconnect, APIRouter, Request
+from fastapi import WebSocket, WebSocketDisconnect, APIRouter, Body
 from fastapi.responses import StreamingResponse
 from fastapi.websockets import WebSocketDisconnect, WebSocketState
 import json
@@ -14,7 +14,8 @@ from device_scanner import getConnectionStatus
 from serial_handler import write_to_esp32
 from log_manager import get_logs
 from draw_loop import main_draw_loop
-from camera_capture import generate_frames, camera
+from camera_capture import generate_frames, generate_transformed_frames, camera
+from state import camera_perspective_transfrom, set_camera_transform
 
 router = APIRouter()
 
@@ -242,6 +243,25 @@ def capture_image():
     return {"filename": filename, "url": f"http://localhost:8000/captured/{filename}"}
 
 @router.get("/video")
-def video_feed():
-    return StreamingResponse(generate_frames(),
-                             media_type="multipart/x-mixed-replace; boundary=frame")
+def video_feed_raw():
+    return StreamingResponse(generate_frames(), media_type="multipart/x-mixed-replace; boundary=frame")
+
+@router.get("/video_transformed")
+def video_feed_transformed():
+    return StreamingResponse(generate_transformed_frames(), media_type="multipart/x-mixed-replace; boundary=frame")
+
+@router.websocket("/ws/camera_perspective_transform/")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    camera_points = json.dumps(camera_perspective_transfrom.transform)
+
+    # Send initial point data
+    await websocket.send_text(camera_points)
+
+    try:
+        while True:
+            data = await websocket.receive_text()
+            updated_points = json.loads(data)
+            set_camera_transform(camera_perspective_transfrom, updated_points)
+    except WebSocketDisconnect:
+        print("Client disconnected")

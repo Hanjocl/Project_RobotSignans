@@ -7,6 +7,7 @@ def generate_gcodeFile(path, Feed):
     for point in path:
         gcode.append(f"G1 X{point[0]} Y{point[1]} Z{point[2]} F{Feed}")  # Linear movement command
         
+    gcode.append("G91")
     return gcode
 
 

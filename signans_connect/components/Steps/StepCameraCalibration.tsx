@@ -61,118 +61,237 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
     }
   };
 
-  return (
-    <div className="grid grid-cols-2 gap-4 h-full">
-      {/* Left Column */}
-      <div className="flex flex-col justify-between">
-        {/* CAMERA VIEW */}
-        <div className="flex bg-base-200">
-          <div className="border border-base-content rounded-box p-4">
-            <h2 className="text-lg font-bold mb-4 text-center">Live Camera Feed</h2>
-            <div className="aspect-w-16 aspect-h-9">
-              <img
-                src="http://localhost:8000/video"
-                alt="Live Stream"
-                className="rounded-box shadow-xl object-cover w-full h-full"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
+
+  const [draggedPoints, setDraggedPoints] = useState([
+    { id: 1, x: 0, y: 0 },
+    { id: 2, x: 0, y: 0 },
+    { id: 3, x: 0, y: 0 },
+    { id: 4, x: 0, y: 0 },
+  ]); // Initial positions of draggable points as percentages
+
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const isDraggingRef = useRef(false);
+  const currentDragPointRef = useRef<number | null>(null);
+
+  const drawPoints = (ctx: CanvasRenderingContext2D) => {
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    const scaleX = ctx.canvas.width / 1080;
+    const scaleY = ctx.canvas.height / 1920;
+
+    // Draw rectangle connecting the points
+    if (draggedPoints.length >= 2) {
+      ctx.beginPath();
+      const first = draggedPoints[0];
+      ctx.moveTo(first.x * scaleX, first.y * scaleY);
+      draggedPoints.slice(1).forEach((point) => {
+        ctx.lineTo(point.x * scaleX, point.y * scaleY);
+      });
+      ctx.lineTo(first.x * scaleX, first.y * scaleY);
+      ctx.strokeStyle = "lime";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Draw points and their coordinates
+    ctx.font = "14px Arial";
+    ctx.fillStyle = "red";
+
+    draggedPoints.forEach((point, index) => {
+      const cx = point.x * scaleX;
+      const cy = point.y * scaleY;
+
+      // Draw the point
+      ctx.beginPath();
+      ctx.arc(cx, cy, 8, 0, 2 * Math.PI);
+      ctx.fill();
+
+      // Draw the coordinate text
+      ctx.fillStyle = "red";
+      ctx.fillText(`(${Math.round(point.x)}, ${Math.round(point.y)})`, cx + 10, cy - 10);
+      ctx.fillStyle = "red"; // Reset for next point
+    });
+  };
+
+  // Handle image load event
+  const handleImageLoad = () => {
+    const canvas = canvasRef.current;
+    const img = imgRefOriginal.current;
+    if (canvas && img) {
+      canvas.width = img.clientWidth;
+      canvas.height = img.clientHeight;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        drawPoints(ctx);
+      }
+    }
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+  const canvas = canvasRef.current;
+  if (!canvas) return;
+
+  const { offsetX, offsetY } = e.nativeEvent;
+  const scaleX = canvas.width / 1080;
+  const scaleY = canvas.height / 1920;
+
+  draggedPoints.forEach((point, index) => {
+    const pointX = point.x * scaleX;
+    const pointY = point.y * scaleY;
+    const distance = Math.sqrt((offsetX - pointX) ** 2 + (offsetY - pointY) ** 2);
+
+    if (distance < 10) {
+      isDraggingRef.current = true;
+      currentDragPointRef.current = index;
+    }
+  });
+};
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingRef.current || currentDragPointRef.current === null) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const { offsetX, offsetY } = e.nativeEvent;
+    const scaleX = 1080 / canvas.width;
+    const scaleY = 1920 / canvas.height;
+
+    const newPoints = [...draggedPoints];
+    newPoints[currentDragPointRef.current] = {
+      ...newPoints[currentDragPointRef.current],
+      x: offsetX * scaleX,
+      y: offsetY * scaleY,
+    };
+
+    setDraggedPoints(newPoints);
+  };
+
+  const handleMouseUp = () => {
+    isDraggingRef.current = false;
+    currentDragPointRef.current = null;
+
+    // Send updated points to server
+    if (socketRefPoints.current?.readyState === WebSocket.OPEN) {
+      socketRefPoints.current.send(JSON.stringify(draggedPoints));
+    }
+  };
+
+  const imgRefOriginal = useRef<HTMLImageElement | null>(null);
+  const imgRefTransformed = useRef<HTMLImageElement | null>(null);
+  useEffect(() => {
+    const img = imgRefOriginal.current;
+    const canvas = canvasRef.current;
+
+    if (img && canvas) {
+      canvas.width = img.clientWidth;
+      canvas.height = img.clientHeight;
+    }
+  }, [draggedPoints]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      drawPoints(ctx);
+    } else {
+      console.warn("Canvas context not found");
+    }
+  }, [draggedPoints]);
+
+
+  const socketRefPoints = useRef<WebSocket | null>(null);
+
+  useEffect(() => {
+    const handleResize = () => {
+      console.log("Window resized:", window.innerWidth, window.innerHeight);
       
-      {/* Right Column (divided into top and bottom) */}
-      <div className="grid grid-rows-2 gap-4 h-full">
-        {/* Top Section of the Right Column */}
-        <div className="flex flex-col">
-          {/* CONTROL PANEL */}
-      <div className="flex justify-center gap-16">
-        <div className="flex flex-col items-center space-y-4">
-          {/* Y Axis */}
-          <div className="flex flex-col items-center">
-            <div className="flex flex-col space-y-2 mt-2">
-              <button className="btn" onClick={() => relativeMove(`G0 Y10`)}>+10</button>
-              <button className="btn" onClick={() => relativeMove(`G0 Y5`)}>+5</button>
-              <button className="btn" onClick={() => relativeMove(`G0 Y1`)}>+1</button>
-            </div>
-          </div>
+      // TODO -> LOGIC TO UPDATE POITNS
+    };
+    
+    window.addEventListener("resize", handleResize);;
 
-          {/* X Axis */}
-          <div className="flex space-x-2 items-center">
-            <button className="btn" onClick={() => relativeMove(`G0 X-10`)}>-10</button>
-            <button className="btn" onClick={() => relativeMove(`G0 X-5`)}>-5</button>
-            <button className="btn" onClick={() => relativeMove(`G0 X-1`)}>-1</button>
-            <div className="w-16"></div>
-            <button className="btn" onClick={() => relativeMove(`G0 X1`)}>+1</button>
-            <button className="btn" onClick={() => relativeMove(`G0 X5`)}>+5</button>
-            <button className="btn" onClick={() => relativeMove(`G0 X10`)}>+10</button>
-          </div>
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
 
-          {/* -Y Axis */}
-          <div className="flex flex-col items-center">
-            <div className="flex flex-col space-y-2 mt-2">
-              <button className="btn" onClick={() => relativeMove(`G0 Y-1`)}>-1</button>
-              <button className="btn" onClick={() => relativeMove(`G0 Y-5`)}>-5</button>
-              <button className="btn" onClick={() => relativeMove(`G0 Y-10`)}>-10</button>
-            </div>
-          </div>
+  useEffect(() => {
+    socketRefPoints.current = new WebSocket("ws://localhost:8000/ws/camera_perspective_transform/");
+
+    socketRefPoints.current.onopen = () => {
+      console.log("Connected to points WebSocket");
+    };
+
+    socketRefPoints.current.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (Array.isArray(data)) {
+        setDraggedPoints(data); // overwrite local points
+      }
+    };
+
+    socketRefPoints.current.onclose = () => {
+      console.log("WebSocket closed");
+    };
+
+    return () => {
+      socketRefPoints.current?.close();
+    };
+  }, []);
+
+  return (
+    <div className="max-h-[80vh] p-4">
+      {/* Livestream grid */}
+      <div className="grid grid-cols-2 gap-4 w-full">
+        <div className="relative w-full">
+          <img
+            ref={imgRefOriginal}
+            src="http://localhost:8000/video"
+            className="object-contain w-full p-4"
+            onLoad={handleImageLoad}
+          />
+          <canvas
+            ref={canvasRef}
+            className="absolute top-0 left-0"
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseOut={handleMouseUp}
+          />
         </div>
 
-        {/* Z Axis */}
-        <div className="flex flex-col items-center space-y-4">
-          <h3 className="text-md font-semibold">Z Axis</h3>
-          <div className="flex flex-col space-y-2">
-            <button className="btn" onClick={() => relativeMove(`G0 Z10`)}>+10</button>
-            <button className="btn" onClick={() => relativeMove(`G0 Z5`)}>+5</button>
-            <button className="btn" onClick={() => relativeMove(`G0 Z1`)}>+1</button>
-            <button className="btn" onClick={() => relativeMove(`G0 Z-1`)}>-1</button>
-            <button className="btn" onClick={() => relativeMove(`G0 Z-5`)}>-5</button>
-            <button className="btn" onClick={() => relativeMove(`G0 Z-10`)}>-10</button>
-          </div>
+        <div className="w-full">
+          <img
+            ref={imgRefTransformed}
+            src="http://localhost:8000/video_transformed"
+            className="object-contain w-full p-4"
+            onLoad={handleImageLoad}
+          />
         </div>
       </div>
-        </div>
-        
-        {/* Bottom Section of the Right Column */}
-        <div className="flex flex-col">
-          {/* CALIBRATION & STATUS */}
-          <div className="text-center">
-            <button className="btn btn-outline" onClick={handleCapture}>
-              Capture Position
-            </button>
 
-            <p className="mt-2">
-              Status:{" "}
-              {isCalibrated ? (
-                <span className="text-success font-semibold">Complete</span>
-              ) : (
-                <span className="text-warning">In Progress</span>
-              )}
-            </p>
-
-            {cameraCoords ? (
-              <div className="text-sm mt-2 text-gray-500">
-                X: {cameraCoords.X?.toFixed(1)} | Y: {cameraCoords.Y?.toFixed(1)} | Z: {cameraCoords.Z?.toFixed(1)}
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500">Camera position not captured yet.</p>
-            )}
+      {/* Status / Capture Controls */}
+      <div className="text-center mt-6">
+        <button className="btn btn-outline" onClick={handleCapture}>
+          Capture Position
+        </button>
+        <p className="mt-2">
+          Status: {isCalibrated ? (
+            <span className="text-success font-semibold">Complete</span>
+          ) : (
+            <span className="text-warning">In Progress</span>
+          )}
+        </p>
+        {cameraCoords ? (
+          <div className="text-sm mt-2 text-gray-500">
+            X: {cameraCoords.X?.toFixed(1)} | Y: {cameraCoords.Y?.toFixed(1)} | Z: {cameraCoords.Z?.toFixed(1)}
           </div>
-        </div>
+        ) : (
+          <p className="text-sm text-gray-500">Camera position not captured yet.</p>
+        )}
       </div>
     </div>
   );
 };
 
 export default StepCameraCalibration;
-
-
-// <div>
-//       {/* LAYOUT: camera + control panel side by side */}
-//       <div className="flex flex-col lg:flex-row justify-center items-start gap-8 mb-6">
-
-      
-
-      
-
-      
-//     </div>

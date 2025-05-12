@@ -13,53 +13,6 @@ class SharedPositions:
 
 shared_positions = SharedPositions()
 
-
-# class SharedPositions:
-#     def __init__(self):
-#         self._corner_positions = {
-#             "topLeft": None,
-#             "topRight": None,
-#             "bottomLeft": None,
-#             "bottomRight": None
-#         }
-#         self.camera_position = {
-#             "cameraPosition": None
-#         }
-
-#     @property
-#     def topLeft(self):
-#         return self._corner_positions["topLeft"]
-
-#     @topLeft.setter
-#     def topLeft(self, value):
-#         self._corner_positions["topLeft"] = value
-
-#     @property
-#     def topRight(self):
-#         return self._corner_positions["topRight"]
-
-#     @topRight.setter
-#     def topRight(self, value):
-#         self._corner_positions["topRight"] = value
-
-#     @property
-#     def bottomLeft(self):
-#         return self._corner_positions["bottomLeft"]
-
-#     @bottomLeft.setter
-#     def bottomLeft(self, value):
-#         self._corner_positions["bottomLeft"] = value
-
-#     @property
-#     def bottomRight(self):
-#         return self._corner_positions["bottomRight"]
-
-#     @bottomRight.setter
-#     def bottomRight(self, value):
-#         self._corner_positions["bottomRight"] = value
-
-# shared_positions = SharedPositions()
-
 class StepStatus:
     def __init__(self, initial_statuses):
         self._statuses = initial_statuses
@@ -98,3 +51,21 @@ class SharedStatus:
         })
 
 shared_status = SharedStatus()
+
+
+class CameraTransformPerspective:
+    def __init__(self):
+        self.transform = [
+        {"id": 1, "x": 0, "y": 0},            # Top-left
+        {"id": 2, "x": 1080, "y": 0},         # Top-right
+        {"id": 3, "x": 1080, "y": 1920},      # Bottom-right
+        {"id": 4, "x": 0, "y": 1920},         # Bottom-left
+    ] 
+
+camera_perspective_transfrom = CameraTransformPerspective()
+
+def get_transform_store():
+    return camera_perspective_transfrom
+
+def set_camera_transform(store: CameraTransformPerspective, data: list[dict]):
+    store.transform = data

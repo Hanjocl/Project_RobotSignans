@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+import time
+import os
 
 # Generate a 3d path on canvas based on the 4 corners. Should be given like np.array([X, Y, Z])
 def get_3d_path_from_image(image, P0, P1, P2, P3):
@@ -32,7 +34,7 @@ def get_3d_path_from_image(image, P0, P1, P2, P3):
     path_3d = np.array([bilinear_interpolate(u, v) for u, v in path_normalized])
     return path_3d
 
-def visualize_path_3d(path_3d, P0, P1, P2, P3, output_file='path_projected.png'):
+def visualize_path_3d(path_3d, P0, P1, P2, P3, output_file='path_projected.png', folder='plots'):
     """Visualizes the 3D path and saves the plot."""
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
@@ -52,5 +54,18 @@ def visualize_path_3d(path_3d, P0, P1, P2, P3, output_file='path_projected.png')
     ax.set_title("Path Projected on 3D Plane")
 
     plt.tight_layout()
+
+
+    # Ensure the folder exists, create it if it doesn't
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+    # Add timestamp to the file name to avoid overwriting
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+    base, ext = os.path.splitext(output_file)
+    output_file = f"{base}_{timestamp}{ext}"
+    output_file = os.path.join(folder, f"{base}_{timestamp}{ext}")
+    
+    # Save file
     plt.savefig(output_file)
     print(f"Graph has been saved to {output_file}")
