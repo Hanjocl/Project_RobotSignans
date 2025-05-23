@@ -66,6 +66,7 @@ export default function Dashboard() {
   const sendManualCommand = (): void => {    
     if (socket_cmd.current && socket_cmd.current.readyState === WebSocket.OPEN) {
       socket_cmd.current.send(manualInput);
+      setManualInput('');
     } else {
       console.log("WebSocket is not open");
     }
@@ -185,6 +186,13 @@ export default function Dashboard() {
               className={`input w-full ${!connected ? 'input-disabled' : 'input-outline input-error'}`}
               value={manualInput}
               onChange={handleManualInputChange}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && connected && state !== "Drawing") {
+                  sendManualCommand();
+                } else if (event.key === 'Enter' && state === "Drawing") {
+                  alert("Cannot send commands while drawing!");
+                }
+              }}
             />
             <button className={`btn justify-start w-1/5 ${!connected ? 'btn-disabled' : 'btn-outline btn-error'}`}  onClick={() => state != "Drawing" ? sendManualCommand() : alert("Cannot send commands while drawing!") }>Send</button>
           </div>

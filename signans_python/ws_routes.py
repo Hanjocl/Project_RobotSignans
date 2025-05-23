@@ -1,18 +1,18 @@
-from fastapi import WebSocket, WebSocketDisconnect, APIRouter, Body
-from fastapi.responses import StreamingResponse
-from fastapi.websockets import WebSocketDisconnect, WebSocketState
+import os
+import time
 import json
 import asyncio
 import re
 import cv2
-import time
-import os
+from fastapi import WebSocket, WebSocketDisconnect, APIRouter
+from fastapi.websockets import WebSocketState
+from fastapi.responses import StreamingResponse
 import numpy as np
 from state import shared_positions, shared_status
 from main import app
 from device_scanner import getConnectionStatus
-from serial_handler import write_to_esp32
-from log_manager import get_logs
+from serial_handler import reset_esp32, write_to_esp32, read_serial_lines
+from log_manager import create_log, get_logs
 from draw_loop import main_draw_loop
 from camera_capture import generate_frames, generate_transformed_frames, camera
 from state import camera_perspective_transfrom, set_camera_transform
@@ -30,21 +30,41 @@ async def websocket_status(websocket: WebSocket):
             print("Client disconnected from /connectionStatus")
             break
 
+from starlette.websockets import WebSocketDisconnect, WebSocketState
+import asyncio
+
 @router.websocket("/ws/commander/")
 async def websocket_commander(websocket: WebSocket):
     await websocket.accept()
 
-    # Send all stored logs
+    # Send initial logs
     for entry in get_logs():
         await websocket.send_text(entry)
 
     while websocket.client_state == WebSocketState.CONNECTED:
         try:
+            # At this point, serial is available — receive a command
             data = await websocket.receive_text()
             data = data.upper()
+
+            if data == "RESET":
+                success = await reset_esp32()
+                if success:
+                    create_log("ESP Reset: SUCCESS")
+                    await websocket.send_text("ESP Reset: SUCCESS")         # ADD FULL RESET FOR STUFF
+                else:
+                    create_log("ESP Reset: FAILED")
+                    await websocket.send_text("ESP Reset: FAILED")
+                continue
+
+            # Proceed only if serial is available and connected
             if app.state.ser and getConnectionStatus():
-                response = write_to_esp32(data)
-                await websocket.send_text(response)
+                log = write_to_esp32(data)
+                await websocket.send_text(log)
+
+                timeout = 320 if "G28" in data else 10
+                await read_serial_lines(websocket, condition="ok", timeout=timeout)
+
         except WebSocketDisconnect:
             print("Client disconnected from /commander")
             break

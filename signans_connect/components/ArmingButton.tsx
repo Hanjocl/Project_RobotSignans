@@ -108,8 +108,8 @@ const ArmingButton = () => {
       >
         {buttonText}
       </button>
-      <button className="btn btn-outline" onClick={() => sendCommand(`M112`)}>RESET</button>
-      <button className="btn btn-error" onClick={() => sendCommand(`RESET`)}>STOP</button>
+      <button className="btn btn-outline" onClick={() => sendCommand(`RESET`)}>RESET</button>
+      <button className="btn btn-error" onClick={() => sendCommand(`M112`)}>STOP</button>
     </div>
 );
 };

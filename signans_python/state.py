@@ -69,3 +69,23 @@ def get_transform_store():
 
 def set_camera_transform(store: CameraTransformPerspective, data: list[dict]):
     store.transform = data
+
+def reset_all():
+    # Reset shared positions
+    shared_positions.topLeft[:] = [None, None, None]
+    shared_positions.topRight[:] = [None, None, None]
+    shared_positions.bottomLeft[:] = [None, None, None]
+    shared_positions.bottomRight[:] = [None, None, None]
+    shared_positions.cameraPosition[:] = [None, None, None]
+
+    # Reset shared status
+    for step in shared_status.status._statuses:
+        shared_status.status._statuses[step] = "pending"
+
+    # Reset camera perspective transform
+    camera_perspective_transfrom.transform = [
+        {"id": 1, "x": 0, "y": 0},            # Top-left
+        {"id": 2, "x": 1080, "y": 0},         # Top-right
+        {"id": 3, "x": 1080, "y": 1920},      # Bottom-right
+        {"id": 4, "x": 0, "y": 1920},         # Bottom-left
+    ]
