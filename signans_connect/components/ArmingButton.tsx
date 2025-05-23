@@ -100,7 +100,7 @@ const ArmingButton = () => {
   };
 
   return (
-    <div>
+    <div className="flex gap-2">
       <button
         onClick={StartDrawingSequence}
         className={buttonClass}
@@ -108,9 +108,10 @@ const ArmingButton = () => {
       >
         {buttonText}
       </button>
-      <button className='btn btn-error' onClick={() => sendCommand(`M112`)}>STOP</button>
+      <button className="btn btn-outline" onClick={() => sendCommand(`M112`)}>RESET</button>
+      <button className="btn btn-error" onClick={() => sendCommand(`RESET`)}>STOP</button>
     </div>
-  );
+);
 };
 
 export default ArmingButton;

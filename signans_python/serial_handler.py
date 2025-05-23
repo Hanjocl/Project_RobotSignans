@@ -37,7 +37,7 @@ def write_to_esp32(input: str):
         input = create_log(f"Send: {input}")
 
         if "G28" in input:
-            response = read_until_condition(timeout=240)
+            response = read_until_condition(timeout=320)
         else:
             response = read_until_condition(timeout=10)
 
