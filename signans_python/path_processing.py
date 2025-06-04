@@ -6,33 +6,52 @@ import time
 import os
 
 # Generate a 3d path on canvas based on the 4 corners. Should be given like np.array([X, Y, Z])
-def get_3d_path_from_image(image, P0, P1, P2, P3):
-    """Processes an image to extract and project a 2D path into 3D space."""
-    # Load image and extract contour
-    if image is None:
-        raise RuntimeError("Could not get image from camera")
-    
+import numpy as np
+import cv2
+
+def get_3d_path_from_image(image, P0, P1, P2, P3, segment_length=0.1):
+    """Processes an image to extract and project a 2D path into 3D space with controllable segment length."""
+
     blurred = cv2.GaussianBlur(image, (5, 5), 0)
     edges = cv2.Canny(blurred, 50, 150)
     contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not contours:
         raise ValueError("No contours found in image.")
-    
+
     path_2d = max(contours, key=cv2.contourArea).squeeze().astype(np.float32)
     
-    # Normalize path to unit square
-    h, w = image.shape
+    h, w = image.shape[:2]
     src_quad = np.array([[0, 0], [w, 0], [w, h], [0, h]], dtype=np.float32)
     dst_quad = np.array([[0, 0], [1, 0], [1, 1], [0, 1]], dtype=np.float32)
     H, _ = cv2.findHomography(src_quad, dst_quad)
     path_normalized = cv2.perspectiveTransform(path_2d.reshape(-1, 1, 2), H).reshape(-1, 2)
 
-    # Map normalized path to 3D plane
+    # Resample path to have points spaced approximately by segment_length
+    def resample_path(path, segment_length):
+        # Compute cumulative distances
+        diffs = np.diff(path, axis=0)
+        dists = np.sqrt((diffs ** 2).sum(axis=1))
+        cumulative = np.insert(np.cumsum(dists), 0, 0)
+        total_length = cumulative[-1]
+
+        # Number of segments
+        num_points = max(int(np.ceil(total_length / segment_length)) + 1, 2)
+        new_distances = np.linspace(0, total_length, num_points)
+
+        # Interpolate for new points
+        new_path = np.empty((num_points, 2), dtype=np.float32)
+        new_path[:,0] = np.interp(new_distances, cumulative, path[:,0])
+        new_path[:,1] = np.interp(new_distances, cumulative, path[:,1])
+        return new_path
+
+    path_resampled = resample_path(path_normalized, segment_length)
+
     def bilinear_interpolate(u, v):
         return (1 - u) * (1 - v) * P0 + u * (1 - v) * P1 + u * v * P2 + (1 - u) * v * P3
 
-    path_3d = np.array([bilinear_interpolate(u, v) for u, v in path_normalized])
+    path_3d = np.array([bilinear_interpolate(u, v) for u, v in path_resampled])
     return path_3d
+
 
 def visualize_path_3d(path_3d, P0, P1, P2, P3, output_file='path_projected.png', folder='plots'):
     """Visualizes the 3D path and saves the plot."""
