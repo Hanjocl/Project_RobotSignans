@@ -16,8 +16,19 @@ def init_camera():
         cam.set(cv2.CAP_PROP_FRAME_WIDTH, res_width)   # Width
         cam.set(cv2.CAP_PROP_FRAME_HEIGHT, res_height)   # Height
         if not cam.isOpened():
-            raise IOError("Cannot open webcam")
+            raise IOError("Camera not available")
+        
+        cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 1)  # Enable auto exposure
+        actual_exposure = cam.get(cv2.CAP_PROP_EXPOSURE)
+        # Set exposure
+        # Note: The value and effect depends on your camera driver.
+        # A lower value = longer exposure (brighter image), higher = shorter exposure (darker image)
+        # Try negative values (e.g. -6 to -1) for many webcams.
+        cam.set(cv2.CAP_PROP_EXPOSURE, 0)
+        cam.set(cv2.CAP_PROP_BRIGHTNESS, -150)
+        # Check if the setting was successful
         return cam
+    
     except Exception as e:
         print(f"Camera error: {e}")
         return None
@@ -73,7 +84,6 @@ def apply_perspective_transform(frame, transform_perspective, new_height, new_wi
     return transformed_frame
 
 def stream_transformed_frames():
-    print("DEBUG FLAG")
     if camera is None:
         raise RuntimeError("Camera is not initialized.")
     while True:

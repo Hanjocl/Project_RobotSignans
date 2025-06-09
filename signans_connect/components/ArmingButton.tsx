@@ -51,6 +51,11 @@ const ArmingButton = () => {
     }
   };
 
+  const ResetESP32 = () => {
+    sendCommand('RESET')
+    window.location.reload()
+  };
+
   // Determine button styling
   let buttonClass = 'btn';
   let buttonText = '';
@@ -108,7 +113,7 @@ const ArmingButton = () => {
       >
         {buttonText}
       </button>
-      <button className="btn btn-outline" onClick={() => sendCommand(`RESET`)}>RESET</button>
+      <button className="btn btn-outline" onClick={() => ResetESP32()}>RESET</button>
       <button className="btn btn-error" onClick={() => sendCommand(`M112`)}>STOP</button>
     </div>
 );

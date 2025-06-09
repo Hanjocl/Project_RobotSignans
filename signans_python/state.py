@@ -92,11 +92,11 @@ def reset_all():
 
 def set_all():
     # Reset shared positions
-    shared_positions.topLeft[:] = [205.07, -116.66 ,-1501.7]
-    shared_positions.topRight[:] = [205.07, 283.34, -1501.7]
-    shared_positions.bottomLeft[:] = [-105.07, -116.66,  -1561.7]
-    shared_positions.bottomRight[:] = [-105.07, 283.34, -1561.7]
-    shared_positions.cameraPosition[:] = [-105.07, 283.34, -1561.7]
+    shared_positions.topLeft[:] = [-665.07, -146.66 ,-1341.7]
+    shared_positions.topRight[:] = [-665.07, 213.34, -1341.7]
+    shared_positions.bottomLeft[:] = [-405.07, -146.66,  -1521.7]
+    shared_positions.bottomRight[:] = [-405.07, 213.34, -1521.7]
+    shared_positions.cameraPosition[:] = [194.9, 213.3, -1571.7]
 
     # Reset shared status
     for step in shared_status.status._statuses:
@@ -104,8 +104,8 @@ def set_all():
 
     # Reset camera perspective transform
     camera_perspective_transfrom.transform = [
-        {"id": 1, "x": 0, "y": 0},            # Top-left
-        {"id": 2, "x": 1080, "y": 0},         # Top-right
-        {"id": 3, "x": 1080, "y": 1920},      # Bottom-right
-        {"id": 4, "x": 0, "y": 1920},         # Bottom-left
+        {"id": 1, "x": 596, "y": 1025},            # Top-left
+        {"id": 2, "x": 948, "y": 1163},         # Top-right
+        {"id": 3, "x": 720, "y": 1637},      # Bottom-right
+        {"id": 4, "x": 349, "y": 1446},         # Bottom-left
     ]

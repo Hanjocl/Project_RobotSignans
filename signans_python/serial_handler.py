@@ -1,3 +1,4 @@
+from logging import raiseExceptions
 import serial
 import serial.tools.list_ports
 from log_manager import create_log, get_latest_log
@@ -33,6 +34,7 @@ def disconnect_from_esp32():
 
     if app.state.draw_task is not None:
         app.state.draw_task.cancel()
+        app.state.draw_task = None
         print("Task cancelled.")
 
 async def reset_esp32():
@@ -65,13 +67,23 @@ async def reset_esp32():
 
 def write_to_esp32(input: str):
     try:
-        if app.state.ser and input is not None and "ok" in get_latest_log():
-            command = input.strip() + '\n'
-            app.state.ser.write(command.encode())
-            return f"Send: {input}"
+        if not app.state.ser.is_open:
+            raise RuntimeError("Serial port is not open.")
+        
+        if input is None:
+            raise ValueError("Input is None.")
+        
+        if "ok" not in get_latest_log():
+            raise RuntimeError("'ok' not found in latest log.")
+
+        command = input.strip() + '\n'
+        app.state.ser.write(command.encode())
+        return f"Send: {input}"
+    
     except Exception as e:
         disconnect_from_esp32()
-        return f"ERROR: could not write to ESP32 - {str(e)}"
+        raise RuntimeError(f"ERROR: could not write to ESP32 - {str(e)}")
+
 
 
 async def read_serial_lines(websocket: WebSocket = None, condition="ok", timeout=4):
@@ -79,8 +91,8 @@ async def read_serial_lines(websocket: WebSocket = None, condition="ok", timeout
     update_time = start_time
     processing_response = True
     buffer = ""
-    while processing_response:
-        if app.state.ser and app.state.ser.in_waiting > 0:
+    while processing_response:        
+        try:
             # Read bytes (non-blocking)
             raw = app.state.ser.read(app.state.ser.in_waiting)
             try:
@@ -88,7 +100,7 @@ async def read_serial_lines(websocket: WebSocket = None, condition="ok", timeout
             except UnicodeDecodeError:
                 print("ERROR: Unicode Decoder failed to decode")
                 continue  # Skip malformed data
-
+            response = []
             # Process full lines
             while "\n" in buffer:
 
@@ -100,6 +112,7 @@ async def read_serial_lines(websocket: WebSocket = None, condition="ok", timeout
 
                 if websocket is not None:
                     line = line.replace("echo:", "")
+                    response.append(line)
                     log = create_log(f"Received: {line}")
                     await websocket.send_text(log)
                 else:
@@ -107,14 +120,22 @@ async def read_serial_lines(websocket: WebSocket = None, condition="ok", timeout
 
                 if condition in line:
                     processing_response = False
+     
+        except serial.SerialException as e:
+            print(f"Lost connection to serial device: {e}")
+            break
 
         if time.time() - update_time > timeout:
             processing_response = False
 
         update_time = time.time()
-        await asyncio.sleep(0.01)  # Let event loop breathe
+        await asyncio.sleep(0.01)
 
-    return True
+    # Check if response contains an error and returns result as boolean
+    if any("error" in line.lower() for line in response): 
+        return False
+    else:
+        return True
 
 async def get_position(condition="ok", timeout=10):
     start_time = time.time()

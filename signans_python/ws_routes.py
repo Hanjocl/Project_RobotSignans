@@ -38,6 +38,9 @@ import asyncio
 @router.websocket("/ws/commander/")
 async def websocket_commander(websocket: WebSocket):
     await websocket.accept()
+    
+     # Flush any pending serial messages
+    await read_serial_lines(websocket, condition="ok", timeout=4)
 
     pattern = r'\b(?:' + '|'.join(re.escape(cmd) for cmd in gcode_commands) + r')\b'
 
@@ -45,17 +48,20 @@ async def websocket_commander(websocket: WebSocket):
     for entry in get_logs():
         await websocket.send_text(entry)
 
+    last_send_log = ""
     while websocket.client_state == WebSocketState.CONNECTED:
-        try:
+        try:            
             # At this point, serial is available — receive a command
             data = await websocket.receive_text()
             data = data.upper()
             
+            #Check for empty response
             if data is None:
                 create_log(f"ERROR: No command received. (Ok)")
                 await websocket.send_text(get_latest_log())
                 continue
 
+            # Behaviour for resetting
             if data == "RESET":
                 success = await reset_esp32()
                 if success:
@@ -65,30 +71,68 @@ async def websocket_commander(websocket: WebSocket):
                     create_log("ESP32 Reset: FAILED (ok)")
                     await websocket.send_text(get_latest_log())
                 continue
+            # Behaviour for debugging
             elif data == "DEBUG":
                 set_all()
                 create_log("DEBUG MODE ACTIVATED: know what this does before using it... (ok)")
                 await websocket.send_text(get_latest_log())
                 continue
 
-
+            # Check if command is a valid Gcode command
             if re.search(pattern, data) is None:
                 print("ERROR: unknown command")
                 await websocket.send_text(f"ERROR: Unknown command '{data}' was given. (Ok)")
                 continue
 
-            # Proceed only if serial is available and connected
+            # Send command over serial and wait for a response
             if app.state.ser and getConnectionStatus() and "ok" in get_latest_log():
                 log = write_to_esp32(data)
                 create_log(log)
                 await websocket.send_text(get_latest_log())
 
                 timeout = 540 if "G28" in data else 4
-                await read_serial_lines(websocket, condition="ok", timeout=timeout)
+                response = await read_serial_lines(websocket, condition="ok", timeout=timeout)
+
+            # Make sure the communication stays synced up
+            latest_log = get_latest_log()
+            if latest_log != last_send_log:
+                await websocket.send_text(latest_log)
+                last_send_log = latest_log
+                continue
 
         except WebSocketDisconnect:
             print("Client disconnected from /commander")
             break
+
+
+async def flush_serial_to_log():
+    """
+    Blocks until all available serial lines have been read (waits for 100ms quiet period).
+    Each line is added to the log and returned as a list.
+    """
+    if not (app.state.ser and getConnectionStatus()):
+        return []
+
+    buffer = []
+    last_data_time = time.time()
+
+    try:
+        while True:
+            if app.state.ser.in_waiting > 0:
+                line = app.state.ser.readline().decode(errors='ignore').strip()
+                if line:
+                    create_log(f"[ESP32]: {line}")
+                    buffer.append(line)
+                    last_data_time = time.time()
+            else:
+                if time.time() - last_data_time > 0.1:  # 100ms quiet period
+                    break
+                await asyncio.sleep(0.01)
+
+    except Exception as e:
+        create_log(f"ERROR during serial flush: {str(e)}")
+
+    return buffer
 
 
 @router.websocket("/ws/steps/")
@@ -247,14 +291,24 @@ async def websocket_drawLoopArming(websocket: WebSocket):
         try:
             data = await websocket.receive_text()
 
+            task = getattr(app.state, 'draw_task', None)
             if data == "TryStartDrawing":
-                print("TASK: starting up drawing")
-                app.state.draw_task = asyncio.create_task(main_draw_loop())         # TO-DO: wrap in if statement to check if everything is setup right
-                
+                if task is None or task.done():
+                    # Either no task exists or the previous one is fully done
+                    app.state.draw_task = asyncio.create_task(main_draw_loop())
+                    print("TASK: starting up drawing")                
                 await websocket.send_text("Drawing")
             elif data == "Stop":
                 print("TASK: Stop drawing")
-                app.state.draw_task.cancel()
+                
+                if task and not task.done():
+                    task.cancel()
+                    try:
+                        await task  # Let it cleanly cancel and exit
+                    except asyncio.CancelledError:
+                        print("Task cancelled cleanly.")
+                
+                app.state.draw_task = None
                 await websocket.send_text("Stopped")
             else:
                 await websocket.send_text("ERROR")
