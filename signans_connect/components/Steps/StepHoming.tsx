@@ -55,7 +55,7 @@ const StepHoming: React.FC<StepHomingProps> = ({
           <button
             className="btn btn-outline mb-2 mx-2"
             onClick={() => handleStepComplete("Homing")}
-            disabled={!(pressed.X && pressed.Y && pressed.Z)}
+            //disabled={!(pressed.X && pressed.Y && pressed.Z)}
           >
             Confirm homing
           </button>

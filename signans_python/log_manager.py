@@ -1,6 +1,14 @@
 import time
 
-logs = []
+logs = ["logs: initalized -> ok"]
+
+def add_log(message: str):
+    logs.append(message)
+
+def get_latest_log() -> str:
+    if logs:
+        return logs[-1]
+    return "ERROR: No logs available."
 
 def create_log(entry: str) -> str:
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")

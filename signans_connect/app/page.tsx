@@ -49,13 +49,22 @@ export default function Dashboard() {
     };
 
     socket_cmd.current.onclose = () => {
-      setLogs((prevLogs) => [...prevLogs, "Disconnected from server"]);
+      setLogs((prevLogs) => [...prevLogs, "Disconnected from server -> please reload window after reconnecting"]);
     };
 
     return () => {
       socket_cmd.current?.close();
     };
   }, []);
+
+  useEffect(() => {
+  const lastLog = logs[logs.length - 1];
+  if (lastLog && !lastLog.toLowerCase().includes("ok")) {
+    setLoading(true);
+  } else {
+    setLoading(false);
+  }
+}, [logs]);
 
   // Handle manual input change
   const handleManualInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -64,10 +73,13 @@ export default function Dashboard() {
   };
 
   const sendManualCommand = (): void => {    
-    if (socket_cmd.current && socket_cmd.current.readyState === WebSocket.OPEN) {
+    if (socket_cmd.current && socket_cmd.current.readyState === WebSocket.OPEN && !loading) {
       socket_cmd.current.send(manualInput);
       setManualInput('');
-    } else {
+    } else if(loading) {
+      console.log("Wait for next movement to complete");
+    } 
+    else {
       console.log("WebSocket is not open");
     }
   };
@@ -194,7 +206,7 @@ export default function Dashboard() {
                 }
               }}
             />
-            <button className={`btn justify-start w-1/5 ${!connected ? 'btn-disabled' : 'btn-outline btn-error'}`}  onClick={() => state != "Drawing" ? sendManualCommand() : alert("Cannot send commands while drawing!") }>Send</button>
+            <button className={`btn justify-start w-1/5 ${!connected || loading ? 'btn-disabled' : 'btn-outline btn-error'}`}  onClick={() => state != "Drawing" ? sendManualCommand() : alert("Cannot send commands while drawing!") }>Send</button>
           </div>
           <ProgressBar animate={loading} />
           

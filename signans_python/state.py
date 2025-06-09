@@ -89,3 +89,23 @@ def reset_all():
         {"id": 3, "x": 1080, "y": 1920},      # Bottom-right
         {"id": 4, "x": 0, "y": 1920},         # Bottom-left
     ]
+
+def set_all():
+    # Reset shared positions
+    shared_positions.topLeft[:] = [205.07, -116.66 ,-1501.7]
+    shared_positions.topRight[:] = [205.07, 283.34, -1501.7]
+    shared_positions.bottomLeft[:] = [-105.07, -116.66,  -1561.7]
+    shared_positions.bottomRight[:] = [-105.07, 283.34, -1561.7]
+    shared_positions.cameraPosition[:] = [-105.07, 283.34, -1561.7]
+
+    # Reset shared status
+    for step in shared_status.status._statuses:
+        shared_status.status._statuses[step] = "complete"
+
+    # Reset camera perspective transform
+    camera_perspective_transfrom.transform = [
+        {"id": 1, "x": 0, "y": 0},            # Top-left
+        {"id": 2, "x": 1080, "y": 0},         # Top-right
+        {"id": 3, "x": 1080, "y": 1920},      # Bottom-right
+        {"id": 4, "x": 0, "y": 1920},         # Bottom-left
+    ]

@@ -2,20 +2,22 @@ import os
 import time
 import json
 import asyncio
-import re
+
 import cv2
 from fastapi import WebSocket, WebSocketDisconnect, APIRouter
 from fastapi.websockets import WebSocketState
 from fastapi.responses import StreamingResponse
 import numpy as np
-from state import shared_positions, shared_status
+from state import shared_positions, shared_status, set_all
 from main import app
 from device_scanner import getConnectionStatus
-from serial_handler import reset_esp32, write_to_esp32, read_serial_lines
-from log_manager import create_log, get_logs
-from draw_loop import main_draw_loop
-from camera_capture import generate_frames, generate_transformed_frames, camera
+from serial_handler import reset_esp32, write_to_esp32, read_serial_lines, get_position
+from log_manager import create_log, get_logs, get_latest_log
+from draw_loop import main_draw_loop, main_test_loop, main_debug_loop
+from camera_capture import stream_raw_frames, stream_transformed_frames, camera
 from state import camera_perspective_transfrom, set_camera_transform
+from gcode_commands import gcode_commands
+import re
 
 router = APIRouter()
 
@@ -37,6 +39,8 @@ import asyncio
 async def websocket_commander(websocket: WebSocket):
     await websocket.accept()
 
+    pattern = r'\b(?:' + '|'.join(re.escape(cmd) for cmd in gcode_commands) + r')\b'
+
     # Send initial logs
     for entry in get_logs():
         await websocket.send_text(entry)
@@ -46,23 +50,40 @@ async def websocket_commander(websocket: WebSocket):
             # At this point, serial is available — receive a command
             data = await websocket.receive_text()
             data = data.upper()
+            
+            if data is None:
+                create_log(f"ERROR: No command received. (Ok)")
+                await websocket.send_text(get_latest_log())
+                continue
 
             if data == "RESET":
                 success = await reset_esp32()
                 if success:
-                    create_log("ESP Reset: SUCCESS")
-                    await websocket.send_text("ESP Reset: SUCCESS")         # ADD FULL RESET FOR STUFF
+                    create_log("ESP32 Reset: SUCCESS (ok)")
+                    await websocket.send_text(get_latest_log())         # ADD FULL RESET FOR STUFF
                 else:
-                    create_log("ESP Reset: FAILED")
-                    await websocket.send_text("ESP Reset: FAILED")
+                    create_log("ESP32 Reset: FAILED (ok)")
+                    await websocket.send_text(get_latest_log())
+                continue
+            elif data == "DEBUG":
+                set_all()
+                create_log("DEBUG MODE ACTIVATED: know what this does before using it... (ok)")
+                await websocket.send_text(get_latest_log())
+                continue
+
+
+            if re.search(pattern, data) is None:
+                print("ERROR: unknown command")
+                await websocket.send_text(f"ERROR: Unknown command '{data}' was given. (Ok)")
                 continue
 
             # Proceed only if serial is available and connected
-            if app.state.ser and getConnectionStatus():
+            if app.state.ser and getConnectionStatus() and "ok" in get_latest_log():
                 log = write_to_esp32(data)
-                await websocket.send_text(log)
+                create_log(log)
+                await websocket.send_text(get_latest_log())
 
-                timeout = 320 if "G28" in data else 10
+                timeout = 540 if "G28" in data else 4
                 await read_serial_lines(websocket, condition="ok", timeout=timeout)
 
         except WebSocketDisconnect:
@@ -106,16 +127,17 @@ async def websocket_steps(websocket: WebSocket):
 async def websocket_capture_position(websocket: WebSocket):
     await websocket.accept()
 
-    # Send back already captured positions
-    for name in shared_positions.get_corners():
-        array = getattr(shared_positions, name)
-        position = array.tolist()
-        if position is not None and np.any(array != None):
-            await websocket.send_json({
-                "status": "captured",
-                "positionName": name,
-                "position": position
-            })
+    if websocket.client_state == WebSocketState.CONNECTED:
+        # Send back already captured positions
+        for name in shared_positions.get_corners():
+            array = getattr(shared_positions, name)
+            position = array.tolist()
+            if position is not None and np.any(array != None):
+                await websocket.send_json({
+                    "status": "captured",
+                    "positionName": name,
+                    "position": position
+                })
 
     while websocket.client_state == WebSocketState.CONNECTED:
         try:
@@ -126,14 +148,10 @@ async def websocket_capture_position(websocket: WebSocket):
             position_name = data.get("positionName")
 
             if command == "capture" and position_name in shared_positions.get_corners():
-                response = write_to_esp32("M114")
-
-                match = re.search(r'X:([-\d.]+)\s+Y:([-\d.]+)\s+Z:([-\d.]+)', response)
-                if not match:
-                    raise ValueError("Failed to parse position from M114 response")
-
-                captured_position = np.array([float(match.group(1)), float(match.group(2)), float(match.group(3))])
-                print("DEBUG")
+                # Store as a list [x, y, z]
+                captured_position = await get_position()
+                print("Position: ")
+                print(captured_position)
 
                 setattr(shared_positions, position_name, captured_position)
 
@@ -183,13 +201,8 @@ async def websocket_capture_position(websocket: WebSocket):
 
             if command == "capture" and position_name == "cameraPosition":
 
-                response = write_to_esp32("M114")
-                match = re.search(r'X:([-\d.]+)\s+Y:([-\d.]+)\s+Z:([-\d.]+)', response)
-                if not match:
-                    raise ValueError("Failed to parse position from M114 response")
-
                 # Store as a list [x, y, z]
-                captured_position = np.array([float(match.group(1)), float(match.group(2)),float(match.group(3))])
+                captured_position = await get_position()
 
                 shared_positions.cameraPosition = captured_position
 
@@ -235,8 +248,8 @@ async def websocket_drawLoopArming(websocket: WebSocket):
             data = await websocket.receive_text()
 
             if data == "TryStartDrawing":
+                print("TASK: starting up drawing")
                 app.state.draw_task = asyncio.create_task(main_draw_loop())         # TO-DO: wrap in if statement to check if everything is setup right
-                print("TASK: Start drawing")
                 
                 await websocket.send_text("Drawing")
             elif data == "Stop":
@@ -264,11 +277,11 @@ def capture_image():
 
 @router.get("/video")
 def video_feed_raw():
-    return StreamingResponse(generate_frames(), media_type="multipart/x-mixed-replace; boundary=frame")
+    return StreamingResponse(stream_raw_frames(), media_type="multipart/x-mixed-replace; boundary=frame")
 
 @router.get("/video_transformed")
 def video_feed_transformed():
-    return StreamingResponse(generate_transformed_frames(), media_type="multipart/x-mixed-replace; boundary=frame")
+    return StreamingResponse(stream_transformed_frames(), media_type="multipart/x-mixed-replace; boundary=frame")
 
 @router.websocket("/ws/camera_perspective_transform/")
 async def websocket_endpoint(websocket: WebSocket):

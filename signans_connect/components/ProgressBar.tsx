@@ -1,41 +1,60 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from "react";
 
 const ProgressBar = ({ animate = true }) => {
   const [progress, setProgress] = useState(0);
-  const [isAnimating, setIsAnimating] = useState(animate);
-  const [intervalTime, setIntervalTime] = useState(30); // Regular speed for animation
+  const animationFrame = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!isAnimating) return;
-
-    const interval = setInterval(() => {
-      setProgress((prev) => (prev === 100 ? 0 : prev + 1));
-    }, intervalTime); // Speed changes based on `intervalTime`
-
-    return () => clearInterval(interval);
-  }, [isAnimating, intervalTime]);
-
-  // Handle the case when animation is stopped, and it should finish faster
-  useEffect(() => {
+    // If animating/loading => show indeterminate bar
     if (animate) {
-      setIsAnimating(true);
-      setIntervalTime(30); // Set normal speed when animation is active
-    } else if (progress < 100) {
-      // When stopping animation, speed up to complete the cycle faster
-      setIntervalTime(3); // Faster speed to complete the progress quickly
-    } else {
-      setIsAnimating(false);
-      setIntervalTime(8); // Reset to normal speed once the progress completes
+      setProgress(0);
+      if (animationFrame.current) {
+        cancelAnimationFrame(animationFrame.current);
+      }
+      return;
     }
-  }, [animate, progress]);
+
+    // If loading finished => animate progress from 0 to 100 smoothly
+    let start: number | null = null;
+
+    const duration = 500; // animation duration in ms
+
+    const step = (timestamp: number) => {
+      if (!start) start = timestamp;
+      const elapsed = timestamp - start;
+
+      const progressValue = Math.min((elapsed / duration) * 100, 100);
+      setProgress(progressValue);
+
+      if (elapsed < duration) {
+        animationFrame.current = requestAnimationFrame(step);
+      } else {
+        animationFrame.current = null;
+      }
+    };
+
+    animationFrame.current = requestAnimationFrame(step);
+
+    return () => {
+      if (animationFrame.current) {
+        cancelAnimationFrame(animationFrame.current);
+      }
+    };
+  }, [animate]);
 
   return (
     <div className="w-full">
-      <progress
-        className="progress progress-primary w-full"
-        value={progress}
-        max="100"
-      ></progress>
+      {animate ? (
+        // Indeterminate progress (no value attribute)
+        <progress className="progress progress-primary w-full" />
+      ) : (
+        // Smooth fill progress
+        <progress
+          className="progress progress-primary w-full transition-all duration-500"
+          value={progress}
+          max={100}
+        />
+      )}
     </div>
   );
 };

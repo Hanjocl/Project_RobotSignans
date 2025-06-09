@@ -1,11 +1,12 @@
 import serial
 import serial.tools.list_ports
-from log_manager import create_log
+from log_manager import create_log, get_latest_log
 from main import app
 import time
 from fastapi import WebSocket
+import numpy as np
 import asyncio
-
+import re
 from state import reset_all
 
 def find_esp32_port():
@@ -64,17 +65,63 @@ async def reset_esp32():
 
 def write_to_esp32(input: str):
     try:
-        command = input.strip() + '\n'
-        app.state.ser.write(command.encode())
-        return create_log(f"Send: {input}")
+        if app.state.ser and input is not None and "ok" in get_latest_log():
+            command = input.strip() + '\n'
+            app.state.ser.write(command.encode())
+            return f"Send: {input}"
     except Exception as e:
         disconnect_from_esp32()
         return f"ERROR: could not write to ESP32 - {str(e)}"
 
-async def read_serial_lines(websocket: WebSocket, condition="ok", timeout=10):
+
+async def read_serial_lines(websocket: WebSocket = None, condition="ok", timeout=4):
+    start_time = time.time()
+    update_time = start_time
+    processing_response = True
+    buffer = ""
+    while processing_response:
+        if app.state.ser and app.state.ser.in_waiting > 0:
+            # Read bytes (non-blocking)
+            raw = app.state.ser.read(app.state.ser.in_waiting)
+            try:
+                buffer += raw.decode("utf-8")
+            except UnicodeDecodeError:
+                print("ERROR: Unicode Decoder failed to decode")
+                continue  # Skip malformed data
+
+            # Process full lines
+            while "\n" in buffer:
+
+                line, buffer = buffer.split("\n", 1)
+                line = line.strip()
+
+                if "echo:busy: processing" in line:
+                    continue
+
+                if websocket is not None:
+                    line = line.replace("echo:", "")
+                    log = create_log(f"Received: {line}")
+                    await websocket.send_text(log)
+                else:
+                    print(line)
+
+                if condition in line:
+                    processing_response = False
+
+        if time.time() - update_time > timeout:
+            processing_response = False
+
+        update_time = time.time()
+        await asyncio.sleep(0.01)  # Let event loop breathe
+
+    return True
+
+async def get_position(condition="ok", timeout=10):
     start_time = time.time()
     processing_repsonse = True
+    response = ""
 
+    write_to_esp32("M114")
     while processing_repsonse:
         if app.state.ser and app.state.ser.in_waiting > 0:
             line = app.state.ser.readline().decode('utf-8').strip()
@@ -82,19 +129,23 @@ async def read_serial_lines(websocket: WebSocket, condition="ok", timeout=10):
             if "echo:busy: processing" in line:
                 continue
 
-            line = line.replace("echo:", "")
-            log = create_log(f"Received: {line}")
-
-            # SEND each line as soon as it's received
-            await websocket.send_text(log)
+            # Add each line as soon as it's received
+            response += str(line)
 
             # Stop if condition is met
             if condition in line:
                 processing_repsonse = False
+
+                match = re.search(r'X:([-\d.]+)\s+Y:([-\d.]+)\s+Z:([-\d.]+)', response)
+                if not match:
+                    raise ValueError("Failed to parse position from M114 response")
+                
+                captured_position = np.array([float(match.group(1)), float(match.group(2)),float(match.group(3))])
+                
+                return captured_position
 
         # Timeout
         if time.time() - start_time > timeout:
             processing_repsonse = False
 
         await asyncio.sleep(0.01)
-

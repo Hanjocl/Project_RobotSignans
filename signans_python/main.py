@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import asyncio
 import uvicorn
+from state import set_all
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -16,6 +18,8 @@ async def lifespan(app: FastAPI):
     # Import to avoid circular imports
     from device_scanner import scan_for_esp32
     asyncio.create_task(scan_for_esp32())
+
+    #set_all() #Debug line to test drawing sequence on simulation esp32 (DO NOT USE FOR REAL ARM)
     
     yield
     print("App shutting down...")
