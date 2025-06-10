@@ -32,15 +32,10 @@ async def websocket_status(websocket: WebSocket):
             print("Client disconnected from /connectionStatus")
             break
 
-from starlette.websockets import WebSocketDisconnect, WebSocketState
-import asyncio
-
 @router.websocket("/ws/commander/")
 async def websocket_commander(websocket: WebSocket):
     await websocket.accept()
     
-     # Flush any pending serial messages
-    await read_serial_lines(websocket, condition="ok", timeout=4)
 
     pattern = r'\b(?:' + '|'.join(re.escape(cmd) for cmd in gcode_commands) + r')\b'
 
@@ -48,7 +43,18 @@ async def websocket_commander(websocket: WebSocket):
     for entry in get_logs():
         await websocket.send_text(entry)
 
+     # Flush any pending serial messages
+    create_log(f"Flushing serial (please wait, ok)")
+    await read_serial_lines(websocket, condition="ok", timeout=1)
+    create_log(f"Serial Flushed! (ok)")
+    await websocket.send_text(get_latest_log())
+
+    
     last_send_log = ""
+    latest_log = get_latest_log()
+    if latest_log:
+        last_send_log = latest_log 
+        
     while websocket.client_state == WebSocketState.CONNECTED:
         try:            
             # At this point, serial is available — receive a command
@@ -91,8 +97,10 @@ async def websocket_commander(websocket: WebSocket):
                 await websocket.send_text(get_latest_log())
 
                 timeout = 540 if "G28" in data else 4
-                response = await read_serial_lines(websocket, condition="ok", timeout=timeout)
+                await read_serial_lines(websocket, condition="ok", timeout=timeout)
+                last_send_log = get_latest_log()
 
+            
             # Make sure the communication stays synced up
             latest_log = get_latest_log()
             if latest_log != last_send_log:
@@ -103,37 +111,6 @@ async def websocket_commander(websocket: WebSocket):
         except WebSocketDisconnect:
             print("Client disconnected from /commander")
             break
-
-
-async def flush_serial_to_log():
-    """
-    Blocks until all available serial lines have been read (waits for 100ms quiet period).
-    Each line is added to the log and returned as a list.
-    """
-    if not (app.state.ser and getConnectionStatus()):
-        return []
-
-    buffer = []
-    last_data_time = time.time()
-
-    try:
-        while True:
-            if app.state.ser.in_waiting > 0:
-                line = app.state.ser.readline().decode(errors='ignore').strip()
-                if line:
-                    create_log(f"[ESP32]: {line}")
-                    buffer.append(line)
-                    last_data_time = time.time()
-            else:
-                if time.time() - last_data_time > 0.1:  # 100ms quiet period
-                    break
-                await asyncio.sleep(0.01)
-
-    except Exception as e:
-        create_log(f"ERROR during serial flush: {str(e)}")
-
-    return buffer
-
 
 @router.websocket("/ws/steps/")
 async def websocket_steps(websocket: WebSocket):
@@ -299,7 +276,7 @@ async def websocket_drawLoopArming(websocket: WebSocket):
                     print("TASK: starting up drawing")                
                 await websocket.send_text("Drawing")
             elif data == "Stop":
-                print("TASK: Stop drawing")
+                print("TASK: Stopping drawing")
                 
                 if task and not task.done():
                     task.cancel()
@@ -307,6 +284,9 @@ async def websocket_drawLoopArming(websocket: WebSocket):
                         await task  # Let it cleanly cancel and exit
                     except asyncio.CancelledError:
                         print("Task cancelled cleanly.")
+
+                    # Wait for ESP32 to finish last command given and report process back to be done
+                    await read_serial_lines(timeout=2)
                 
                 app.state.draw_task = None
                 await websocket.send_text("Stopped")

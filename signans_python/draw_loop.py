@@ -4,7 +4,7 @@ from main import app
 from serial_handler import read_serial_lines, write_to_esp32
 from gcodeGenerator import generate_gcodeFile, generate_gcodeLine, save_gcode_to_file
 from path_processing import get_3d_path_from_image, visualize_path_3d
-from camera_capture import get_transformed_frame
+from camera_capture import get_transformed_frame, save_frame_with_incrementing_filename
 from log_manager import create_log
 from state import shared_positions as pos
 
@@ -35,54 +35,59 @@ async def main_draw_loop():
         create_log("Send: G90 (ok)")
         await wait_until_ready()
 
-        write_to_esp32("G0 F20")
-        create_log("Send: G0 F20 (ok)")
+        # Set camera speed
+        write_to_esp32("G0 F960")
+        create_log("Send: G0 F960 (ok)")
         await wait_until_ready()
-        await asyncio.sleep(4)
 
         create_log("Going to camera position (ok)")
         line = generate_gcodeLine(pos.cameraPosition[0], pos.cameraPosition[1], pos.cameraPosition[2])
         create_log(f"Generated line: {line} (ok)")
+        await asyncio.sleep(1)
 
         write_to_esp32(line)
         await wait_until_ready()
 
-        await asyncio.sleep(1)
         create_log("Arrived at camera position (ok)")
-        await asyncio.sleep(4)
-
-        write_to_esp32("G0 F10")
-        create_log("Send: G0 F10 (ok)")
-        await wait_until_ready()
-
+        await asyncio.sleep(1)
 
         create_log("Trying to capture image (ok)")
-        await asyncio.sleep(4)
+        await asyncio.sleep(1)
 
         img = await get_transformed_frame()
         if img is None:
             create_log("Failure: Camera (ok)")
             app.state.draw_task.cancel()
             app.state.draw_task = None
+            break
 
         create_log("Image succesfuly captured (ok)")
+        await asyncio.sleep(1)
 
+        # Set drawing speed
+        write_to_esp32("G0 F1200")
+        create_log("Send: G0 F1200 (ok)")
+        await wait_until_ready()
 
         #Determine path to draw based on image
         create_log("Generating path... (ok)")
-        path = get_3d_path_from_image(img, pos.topLeft, pos.topRight, pos.bottomRight, pos.bottomLeft)
-        if path is None:
+        path_3d, path_2d = await get_3d_path_from_image(img, pos.topLeft, pos.topRight, pos.bottomRight, pos.bottomLeft, 10)
+        if path_3d is None:
             create_log("Failure: Path generation (ok)")
             app.state.draw_task.cancel()
-            app.state.draw_task = None    
+            app.state.draw_task = None
+            break    
 
+        #Save image wiht path overlay to disk
+        save_frame_with_incrementing_filename(img, path_2d)
                 
         create_log("Path generated (ok)")
-        movement_commands = path.tolist()          # FOR REAL USE
-        visualize_path_3d(path, pos.topLeft, pos.topRight, pos.bottomRight, pos.bottomLeft)                     # TODO: MAKE VARIABLE TO KILL PROCESS HERE OR SOMEWHERE ELSE???
+        movement_commands = path_3d.tolist()          # FOR REAL USE
+        await visualize_path_3d(path_3d, pos.topLeft, pos.topRight, pos.bottomRight, pos.bottomLeft)
         create_log("Visual exported (ok)")
 
-        await asyncio.sleep(8)
+        await asyncio.sleep(2)
+        
         if not app.state.ser.is_open:
             raise ValueError("Serial Connection failed! (ok)")
 

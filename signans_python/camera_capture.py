@@ -57,7 +57,6 @@ def stream_raw_frames():
         yield (b"--frame\r\n"
                 b"Content-Type: image/jpeg\r\n\r\n" + frame_bytes + b"\r\n")
         
-
 # Define the destination points for the perspective transformation
 dst_points = np.array([
     [0, 0],  # Top-left
@@ -116,15 +115,23 @@ async def get_transformed_frame():
     transform_perspective = camera_perspective_transfrom.transform
     transformed_frame  = apply_perspective_transform(frame, transform_perspective, res_height, res_width)
 
-    # Save frame to folder
-    save_frame_with_incrementing_filename(transformed_frame)
-
     # MJPEG streaming format
     return transformed_frame
 
-def save_frame_with_incrementing_filename(frame, folder="saved_frames", prefix="frame_", ext=".jpg"):
+def save_frame_with_incrementing_filename(frame, path_2d=None, folder="saved_frames", prefix="frame_", ext=".jpg"):
     os.makedirs(folder, exist_ok=True)
     
+    # --- 2D Path Overlay ---
+    if path_2d is not None:
+        # Normalize coordinates to the image size
+        h, w = frame.shape[:2]
+        path_2d_normalized = np.clip(path_2d, 0, [w, h]).astype(np.int32)
+
+        # Draw the path on the image (draw a polyline connecting the points)
+        for i in range(1, len(path_2d_normalized)):
+            cv2.line(frame, tuple(path_2d_normalized[i-1]), tuple(path_2d_normalized[i]), (0, 0, 255), 4)
+
+    # --- Save the frame ---
     existing_files = os.listdir(folder)
     frame_numbers = []
     pattern = re.compile(rf"{re.escape(prefix)}(\d{{4}}){re.escape(ext)}")
@@ -142,3 +149,4 @@ def save_frame_with_incrementing_filename(frame, folder="saved_frames", prefix="
     filename = os.path.join(folder, f"{prefix}{next_num:04d}{ext}")
     cv2.imwrite(filename, frame)
     return filename  # optionally return the saved filename
+

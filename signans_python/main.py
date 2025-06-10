@@ -19,7 +19,7 @@ async def lifespan(app: FastAPI):
     from device_scanner import scan_for_esp32
     asyncio.create_task(scan_for_esp32())
 
-    #set_all() #Debug line to test drawing sequence on simulation esp32 (DO NOT USE FOR REAL ARM)
+    set_all() #Debug line to test drawing sequence on simulation esp32 (DO NOT USE FOR REAL ARM)
     
     yield
     print("App shutting down...")

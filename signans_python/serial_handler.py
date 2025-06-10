@@ -91,7 +91,9 @@ async def read_serial_lines(websocket: WebSocket = None, condition="ok", timeout
     update_time = start_time
     processing_response = True
     buffer = ""
-    while processing_response:        
+    response = []
+
+    while processing_response:
         try:
             # Read bytes (non-blocking)
             raw = app.state.ser.read(app.state.ser.in_waiting)
@@ -100,7 +102,7 @@ async def read_serial_lines(websocket: WebSocket = None, condition="ok", timeout
             except UnicodeDecodeError:
                 print("ERROR: Unicode Decoder failed to decode")
                 continue  # Skip malformed data
-            response = []
+
             # Process full lines
             while "\n" in buffer:
 
@@ -115,20 +117,25 @@ async def read_serial_lines(websocket: WebSocket = None, condition="ok", timeout
                     response.append(line)
                     log = create_log(f"Received: {line}")
                     await websocket.send_text(log)
+                elif "Processing segement with inverse kinematics..." in line:
+                    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+                    line = f"[{timestamp}] {line}"
                 else:
                     print(line)
 
                 if condition in line:
                     processing_response = False
+
+                update_time = time.time()
      
         except serial.SerialException as e:
             print(f"Lost connection to serial device: {e}")
+            processing_response = False
             break
 
         if time.time() - update_time > timeout:
             processing_response = False
 
-        update_time = time.time()
         await asyncio.sleep(0.01)
 
     # Check if response contains an error and returns result as boolean
