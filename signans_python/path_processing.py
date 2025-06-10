@@ -5,7 +5,6 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import time
 import os
 import re
-from skimage.morphology import medial_axis
 
 
 async def get_3d_path_from_image(image, P0, P1, P2, P3, segment_length=4.0):
@@ -63,17 +62,25 @@ async def get_3d_path_from_image(image, P0, P1, P2, P3, segment_length=4.0):
         return None
 
 def image_to_path(image):
+    # Ensure image is binary (0 or 255)
+    _, binary = cv2.threshold(image, 150, 255, cv2.THRESH_BINARY)
+    
+    # Invert image for thinning (thinning expects foreground=1)
+    binary_inv = cv2.bitwise_not(binary)
 
-    ret, thresh = cv2.threshold(image, 150, 255, cv2.THRESH_BINARY)
-    thresh = cv2.bitwise_not(thresh)
+    # Perform thinning (skeletonization)
+    skeleton = cv2.ximgproc.thinning(binary_inv)
 
-    contours, hierarchy = cv2.findContours(image=thresh, mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_NONE)
+    # Find contours on skeleton image
+    contours, _ = cv2.findContours(image=skeleton, mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_NONE)
+
     if not contours:
-            raise ValueError("No contours found in image.")
-    
-    # --- Get largest contour ---
+        raise ValueError("No contours found in skeletonized image.")
+
+    # Get largest contour as path
     path_2d = max(contours, key=cv2.contourArea).squeeze()
-    
+
+    # Ensure correct shape (N, 2)
     if path_2d.ndim != 2 or path_2d.shape[1] != 2:
         raise ValueError(f"Unexpected path_2d shape: {path_2d.shape}")
 

@@ -64,11 +64,6 @@ async def main_draw_loop():
         create_log("Image succesfuly captured (ok)")
         await asyncio.sleep(1)
 
-        # Set drawing speed
-        write_to_esp32("G0 F1200")
-        create_log("Send: G0 F1200 (ok)")
-        await wait_until_ready()
-
         #Determine path to draw based on image
         create_log("Generating path... (ok)")
         path_3d, path_2d = await get_3d_path_from_image(img, pos.topLeft, pos.topRight, pos.bottomRight, pos.bottomLeft, 10)
@@ -85,11 +80,16 @@ async def main_draw_loop():
         movement_commands = path_3d.tolist()          # FOR REAL USE
         await visualize_path_3d(path_3d, pos.topLeft, pos.topRight, pos.bottomRight, pos.bottomLeft)
         create_log("Visual exported (ok)")
-
+ 
         await asyncio.sleep(2)
         
         if not app.state.ser.is_open:
             raise ValueError("Serial Connection failed! (ok)")
+        
+        # Set drawing speed
+        write_to_esp32("G0 F1200")
+        create_log("Send: G0 F1200 (ok)")
+        await wait_until_ready()
 
         # Send the movement command to the ESP32 via serial
         try:
