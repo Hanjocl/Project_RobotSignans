@@ -52,7 +52,7 @@ To make it run on boot:
 1. In the home/[user] dir, create a file called "start-all.sh"
 
     ```nano /home/[USERNAME]/start-all.sh```
-3. Put the following in there (also included in the docs):
+2. Put the following in there (also included in the docs):
     ```
     #!/bin/bash
     
@@ -71,18 +71,43 @@ To make it run on boot:
     wait
     ```
    
-5.Use this command to make it executable:
+3.Use this command to make it executable:
 
     ```chmod +x start-all.sh```
-6. Create service file:
+4. Test exectuable with:
+
+    ```./start-all.sh```
+5. Create service file:
     
     ```sudo nano /etc/systemd/system/startup-apps.service```
+
+6. Add the following (ctrl+0, enter, ctrl+x to save):
+    ```
+    [Unit]
+    Description=Start Next.js frontend and Python backend on boot
+    After=network.target
+    
+    [Service]
+    Type=simple
+    User=[USERNAME]
+    WorkingDirectory=/home/[USERNAME]
+    ExecStart=/home/[USERNAME]/start-all.sh
+    Restart=on-failure
+    
+    [Install]
+    WantedBy=multi-user.target
+    ```
 7.  Reload services & check status:
     ```
     sudo systemctl daemon-reload
-    sudo systemctl restart startup-apps.service
+    sudo systemctl enable startup-apps.service
     sudo systemctl status startup-apps.service
     ```
 8. Reboot and hope it works:
+
     ```sudo reboot```
-    
+
+9. See real-tine logging:
+
+    ```journalctl -u startup-apps.service -f```
+
