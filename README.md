@@ -100,18 +100,25 @@ To make it run on boot:
 7.  Reload services & check status:
     ```
     sudo systemctl daemon-reload
-    sudo systemctl enable startup-apps.service
-    sudo systemctl status startup-apps.service
+    sudo systemctl enable robo_signans.service
+    sudo systemctl start robo_signans.service
     ```
-8. Reboot and hope it works:
+    OR
+     ```
+    sudo systemctl daemon-reload
+    sudo systemctl restart robo_signans.service
+    sudo systemctl start robo_signans.service
+    ```
+    
+9. Reboot and hope it works:
 
     ```sudo reboot```
 
-9. See real-tine logging:
+10. See real-tine logging:
 
     ```journalctl -u startup-apps.service -f```
 
-10. To stop service for development:
+11. To stop service for development:
 
     ```sudo systemctl stop startup-apps.service```
 
