@@ -112,5 +112,6 @@ To make it run on boot:
     ```journalctl -u startup-apps.service -f```
 
 10. To stop service for development:
+
     ```sudo systemctl stop startup-apps.service```
 
