@@ -102,12 +102,13 @@ To make it run on boot:
     sudo systemctl daemon-reload
     sudo systemctl enable robo_signans.service
     sudo systemctl start robo_signans.service
+    sudo systemctl status robo_signans.service
     ```
     OR
      ```
     sudo systemctl daemon-reload
     sudo systemctl restart robo_signans.service
-    sudo systemctl start robo_signans.service
+    sudo systemctl status robo_signans.service
     ```
     
 9. Reboot and hope it works:
