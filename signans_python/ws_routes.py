@@ -307,7 +307,7 @@ def capture_image():
     cv2.imwrite(filepath, frame)
 
     # Return image path or public URL (if served)
-    return {"filename": filename, "url": f"http://localhost:8000/captured/{filename}"}
+    return {"filename": filename, "url": f"http://robosignans2:8000/captured/{filename}"}
 
 @router.get("/video")
 def video_feed_raw():

@@ -17,7 +17,7 @@ export const ConnectedProvider = ({ children }: { children: ReactNode }) => {
 
   // Connect to WebSocket server for connection status
   useEffect(() => {
-    const socket = new WebSocket("ws://localhost:8000/ws/connectionStatus/");
+    const socket = new WebSocket("ws://robosignans2:8000/ws/connectionStatus/");
 
     socket.onmessage = (event) => {
       const status = event.data === "True";

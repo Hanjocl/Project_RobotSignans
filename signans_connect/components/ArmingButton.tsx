@@ -11,7 +11,7 @@ const ArmingButton = () => {
 
   useEffect(() => {
     if (connected) {
-      socketRef.current = new WebSocket("ws://localhost:8000/ws/drawLoopArming/");
+      socketRef.current = new WebSocket("ws://robosignans2:8000/ws/drawLoopArming/");
 
       socketRef.current.onopen = () => {
         console.log("WebSocket connected.");
@@ -83,7 +83,7 @@ const ArmingButton = () => {
   const socket_cmd = useRef<WebSocket | null>(null);
   useEffect(() => {
       // Connect to WebSocket server
-      socket_cmd.current = new WebSocket("ws://localhost:8000/ws/commander/");
+      socket_cmd.current = new WebSocket("ws://robosignans2:8000/ws/commander/");
 
       return () => {
         socket_cmd.current?.close();

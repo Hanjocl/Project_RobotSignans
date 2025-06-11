@@ -26,7 +26,7 @@ export const StepsProvider = ({ children }: { children: React.ReactNode }) => {
   const socketSteps = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    socketSteps.current = new WebSocket("ws://localhost:8000/ws/steps/");
+    socketSteps.current = new WebSocket("ws://robosignans2:8000/ws/steps/");
 
     socketSteps.current.onmessage = (event) => {
       const data = JSON.parse(event.data);

@@ -3,13 +3,16 @@
 set -e
 set -x
 
-cd /home/[USERNAME]/nextjs-frontend
+cd /home/robosignans2/Project_RobotSignans/signans_connect
 yarn install
 yarn start &
 
-cd /home/[USERNAME]/backend
-source venv/bin/activate
-python main.py &
+sleep 1
+cd /home/robosignans2/Project_RobotSignans/signans_python
+source .venv/bin/activate
+python main.py > /tmp/main.log 2>&1 &
+
+
 
 # Wait here forever so the script doesn't exit
 wait

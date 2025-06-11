@@ -18,7 +18,7 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
   const socketRefCamera = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    socketRefCamera.current = new WebSocket("ws://localhost:8000/ws/captureCameraPosition/");
+    socketRefCamera.current = new WebSocket("ws://robosignans2:8000/ws/captureCameraPosition/");
 
     socketRefCamera.current.onopen = () => {
       console.log("Camera position socket connected");
@@ -217,7 +217,7 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
   }, []);
 
   useEffect(() => {
-    socketRefPoints.current = new WebSocket("ws://localhost:8000/ws/camera_perspective_transform/");
+    socketRefPoints.current = new WebSocket("ws://robosignans2:8000/ws/camera_perspective_transform/");
 
     socketRefPoints.current.onopen = () => {
       console.log("Connected to points WebSocket");
@@ -246,7 +246,7 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
         <div className="relative w-full h-[your-height-here] p-4">
           <Image
             ref={imgRefOriginal}
-            src="http://localhost:8000/video"
+            src="http://robosignans2:8000/video"
             alt="Live video feed"
             layout="fill"
             objectFit="contain"
@@ -269,7 +269,7 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
           <div className="relative w-full h-[your-height-here] p-4">
             <Image
               ref={imgRefOriginal}
-              src="http://localhost:8000/video"
+              src="http://robosignans2:8000/video"
               alt="Live video feed"
               layout="fill"
               objectFit="contain"
@@ -291,7 +291,7 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
         <div className="w-full">
           <img
             ref={imgRefTransformed}
-            src="http://localhost:8000/video_transformed"
+            src="http://robosignans2:8000/video_transformed"
             className="object-contain w-full p-4"
             onLoad={handleImageLoad}
           />
