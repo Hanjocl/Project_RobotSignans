@@ -57,12 +57,12 @@ step to get it working:
   -> source .venv/bin/activate
   -> deactivate (for getting out of venv)
 3. Install following packages with pip:
-  -> pip install fastapi
-  -> pip install uvicorn
-  -> pip install websockets
-  -> pip install opencv-contrib-python
-  -> pip install matplotlib
-  -> pip install pyserial
+   -> pip install fastapi
+   -> pip install uvicorn
+   -> pip install websockets
+   -> pip install opencv-contrib-python
+   -> pip install matplotlib
+   -> pip install pyserial
    
 
 5. run
