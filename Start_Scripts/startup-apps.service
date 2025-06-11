@@ -1,0 +1,13 @@
+[Unit]
+Description=Start Next.js frontend and Python backend on boot
+After=network.target
+
+[Service]
+Type=simple
+User=[USERNAME]
+WorkingDirectory=/home/[USERNAME]
+ExecStart=/home/[USERNAME]/start-all.sh
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

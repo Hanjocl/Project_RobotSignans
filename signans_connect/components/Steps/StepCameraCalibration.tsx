@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import Image from 'next/image';
 
 type StepCameraCalibrationProps = {
   handleStepComplete: (step: string) => void;
@@ -10,7 +11,6 @@ type Coordinates = { X: number; Y: number; Z: number } | null;
 
 const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
   handleStepComplete,
-  relativeMove,
 }) => {
   const [isCalibrated, setIsCalibrated] = useState(false);
   const [cameraCoords, setCameraCoords] = useState<Coordinates>(null);
@@ -46,7 +46,7 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
     return () => {
       socketRefCamera.current?.close();
     };
-  }, []);
+  }, [handleStepComplete]);
 
   const handleCapture = () => {
     if (socketRefCamera.current?.readyState === WebSocket.OPEN) {
@@ -96,7 +96,7 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
     ctx.font = "14px Arial";
     ctx.fillStyle = "red";
 
-    draggedPoints.forEach((point, index) => {
+    draggedPoints.forEach((point) => {
       const cx = point.x * scaleX;
       const cy = point.y * scaleY;
 
@@ -197,7 +197,7 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
     } else {
       console.warn("Canvas context not found");
     }
-  }, [draggedPoints]);
+  }, [draggedPoints, drawPoints]);
 
 
   const socketRefPoints = useRef<WebSocket | null>(null);
@@ -243,12 +243,15 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
     <div className="max-h-[80vh] p-4">
       {/* Livestream grid */}
       <div className="grid grid-cols-2 gap-4 w-full">
-        <div className="relative w-full">
-          <img
+        <div className="relative w-full h-[your-height-here] p-4">
+          <Image
             ref={imgRefOriginal}
             src="http://localhost:8000/video"
-            className="object-contain w-full p-4"
-            onLoad={handleImageLoad}
+            alt="Live video feed"
+            layout="fill"
+            objectFit="contain"
+            onLoadingComplete={handleImageLoad}
+            priority={true} // optional, if you want it to load eagerly
           />
           <canvas
             ref={canvasRef}
@@ -259,6 +262,31 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
             onMouseOut={handleMouseUp}
           />
         </div>
+
+        <div className="max-h-[80vh] p-4">
+        {/* Livestream grid */}
+        <div className="grid grid-cols-2 gap-4 w-full">
+          <div className="relative w-full h-[your-height-here] p-4">
+            <Image
+              ref={imgRefOriginal}
+              src="http://localhost:8000/video"
+              alt="Live video feed"
+              layout="fill"
+              objectFit="contain"
+              onLoadingComplete={handleImageLoad}
+              priority={true} // optional, if you want it to load eagerly
+            />
+            <canvas
+              ref={canvasRef}
+              className="absolute top-0 left-0"
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseOut={handleMouseUp}
+            />
+          </div>
+        </div>
+      </div>
 
         <div className="w-full">
           <img

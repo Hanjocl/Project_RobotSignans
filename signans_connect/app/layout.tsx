@@ -1,7 +1,6 @@
 'use client';
 
 import "./globals.css";
-import { useState, useEffect, useRef} from 'react';
 import { ConnectedProvider } from '../context/ConnectedContext';
 import { getConnectionStatus } from "../context/ConnectedContext";
 import ArmingButton from '../components/ArmingButton';

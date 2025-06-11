@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 type StepCornerCalibrationProps = {
   handleStepComplete: (step: string) => void;
@@ -25,7 +25,7 @@ const StepCornerCalibration: React.FC<StepCornerCalibrationProps> = ({
   // WebSocket reference
   const socketRef = useRef<WebSocket | null>(null);
 
-  const positionNames = ["topLeft", "topRight", "bottomLeft", "bottomRight"];
+  const positionNames = React.useMemo(() => ["topLeft", "topRight", "bottomLeft", "bottomRight"], []);
   const classMap = [
     "absolute top-0 left-0 m-2",
     "absolute top-0 right-0 m-2",
@@ -65,7 +65,7 @@ const StepCornerCalibration: React.FC<StepCornerCalibrationProps> = ({
     return () => {
       socketRef.current?.close();
     };
-  }, []);
+  }, [positionNames]);
 
   // Update position state when a position is captured
   const updatePosition = (index: number, coords: Coordinates) => {

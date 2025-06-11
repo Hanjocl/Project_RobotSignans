@@ -40,7 +40,7 @@ const ArmingButton = () => {
         socketRef.current?.close();
       };
     }
-  }, [connected]);
+  }, [connected, setState]);
 
   const StartDrawingSequence = () => {
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
@@ -84,14 +84,6 @@ const ArmingButton = () => {
   useEffect(() => {
       // Connect to WebSocket server
       socket_cmd.current = new WebSocket("ws://localhost:8000/ws/commander/");
-
-      socket_cmd.current.onmessage = (event) => {
-        // Handle incoming messages here
-      };
-
-      socket_cmd.current.onclose = () => {
-        // Handle socket close
-      };
 
       return () => {
         socket_cmd.current?.close();

@@ -7,9 +7,7 @@ type StepHomingProps = {
 };
 
 const StepHoming: React.FC<StepHomingProps> = ({
-  sendHomingCommand,
   handleStepComplete,
-  status,
 }) => {
   // State to track whether each button has been pressed
   const [pressed, setPressed] = useState({
@@ -26,6 +24,11 @@ const StepHoming: React.FC<StepHomingProps> = ({
     }));
     alert(`G28 ${axis.toUpperCase()} has been send.\n\nDO NOT PRESS ANY OTHER BUTTONS UNTIL HOME SEQUENCE IS DONE.`);
   };
+  
+  const getButtonClass = (axis: keyof typeof pressed) =>
+    `btn mb-2 mx-2 ${
+      pressed[axis] ? "btn-success" : "btn-outline"
+    }`;
 
   return (
     <div className="h-full flex justify-center items-center">
@@ -33,19 +36,19 @@ const StepHoming: React.FC<StepHomingProps> = ({
         <h2 className="text-xl mb-4">Homing Step</h2>
         <div className="mb-4">
           <button
-            className="btn btn-outline mb-2 mx-2"
+            className={getButtonClass("X")}
             onClick={() => handleButtonClick("X")}
           >
             Home X
           </button>
           <button
-            className="btn btn-outline mb-2 mx-2"
+            className={getButtonClass("Y")}
             onClick={() => handleButtonClick("Y")}
           >
             Home Y
           </button>
           <button
-            className="btn btn-outline mb-2 mx-2"
+            className={getButtonClass("Z")}
             onClick={() => handleButtonClick("Z")}
           >
             Home Z

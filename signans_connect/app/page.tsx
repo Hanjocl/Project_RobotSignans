@@ -1,5 +1,5 @@
 'use client';
-import React, { JSX } from "react";
+import React from "react";
 import { useState, useEffect, useRef } from 'react';
 import ProgressBar from '../components/ProgressBar';
 import SidebarSteps from '../components/SidebarSteps';
@@ -10,7 +10,6 @@ import StepConnectWires from "@/components/Steps/StepConnectWires";
 import StepFinalChecklist from "@/components/Steps/StepFinalChecklist";
 import StepCameraCalibration from "@/components/Steps/StepCameraCalibration";
 import StepCornerCalibration from "@/components/Steps/StepCornerCalibration";
-import { StepStatus } from "../components/SidebarSteps";
 
 
 // pages/index.js
@@ -18,20 +17,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
 
   const { state, connected } = getConnectionStatus();
-  const { steps, setSteps, socketSteps  } = getStepStatus();
-
-  const toggleLoading = () => {
-    setLoading((prev) => !prev); // Toggle the loading state between true and false
-  };
-  
-  // Temporary messages array
-  const [messages, setMessages] = useState([
-    "Welcome to the terminal!",
-    "System initialized successfully.",
-    "Waiting for input...",
-    "Incoming message: Command received.",
-    "Processing request..."
-  ]);
+  const { steps, socketSteps  } = getStepStatus();
 
   {/* Manual Input */}
   
@@ -42,7 +28,6 @@ export default function Dashboard() {
   useEffect(() => {
     // Connect to WebSocket server
     socket_cmd.current= new WebSocket("ws://localhost:8000/ws/commander/");
-    console.log("Manual Input:", manualInput);
 
     socket_cmd.current.onmessage = (event) => {
       setLogs((prevLogs) => [...prevLogs, `${event.data}`]);
@@ -137,14 +122,6 @@ export default function Dashboard() {
   };
 
   const renderStepComponent = () => {
-    const commonProps = {
-      sendManualCommand,
-      sendHomingCommand,
-      sendRelativeMove,
-      handleStepComplete,
-      // Pass any other functions needed by the steps
-    };
-
     // Find the current step status dynamically
     const getStatus = (stepName: string) => {
       return steps.find(step => step.step === stepName)?.status || "pending";
