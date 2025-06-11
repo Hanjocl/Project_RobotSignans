@@ -55,17 +55,20 @@ To make it run on boot:
 2. Put the following in there (also included in the docs):
     ```
     #!/bin/bash
-    
+
     set -e
     set -x
     
-    cd /home/robosignans2/nextjs-frontend
+    cd /home/robosignans2/Project_RobotSignans/signans_connect
     yarn install
     yarn start &
     
-    cd /home/robosignans2/backend
-    source venv/bin/activate
-    python main.py &
+    sleep 1
+    cd /home/robosignans2/Project_RobotSignans/signans_python
+    source .venv/bin/activate
+    python main.py > /tmp/main.log 2>&1 &
+    
+    
     
     # Wait here forever so the script doesn't exit
     wait
@@ -85,13 +88,13 @@ To make it run on boot:
     ```
     [Unit]
     Description=Start Next.js frontend and Python backend on boot
-    After=network.target
+    After=network-online.target
     
     [Service]
     Type=simple
     User=[USERNAME]
     WorkingDirectory=/home/[USERNAME]
-    ExecStart=/home/[USERNAME]/start-all.sh
+    ExecStart=/home/[USERNAME]/Project_RobotSignans/Start_Scripts/start-all.sh
     Restart=on-failure
     
     [Install]
@@ -100,18 +103,26 @@ To make it run on boot:
 7.  Reload services & check status:
     ```
     sudo systemctl daemon-reload
-    sudo systemctl enable startup-apps.service
-    sudo systemctl status startup-apps.service
+    sudo systemctl enable robo_signans.service
+    sudo systemctl start robo_signans.service
+    sudo systemctl status robo_signans.service
     ```
-8. Reboot and hope it works:
+    OR
+     ```
+    sudo systemctl daemon-reload
+    sudo systemctl restart robo_signans.service
+    sudo systemctl status robo_signans.service
+    ```
+    
+9. Reboot and hope it works:
 
     ```sudo reboot```
 
-9. See real-tine logging:
+10. See real-tine logging:
 
     ```journalctl -u startup-apps.service -f```
 
-10. To stop service for development:
+11. To stop service for development:
 
     ```sudo systemctl stop startup-apps.service```
 
