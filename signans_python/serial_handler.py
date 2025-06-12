@@ -1,10 +1,10 @@
-from logging import raiseExceptions
 import serial
 import serial.tools.list_ports
 from log_manager import create_log, get_latest_log
 from main import app
 import time
 from fastapi import WebSocket
+from fastapi.websockets import WebSocketState
 import numpy as np
 import asyncio
 import re
@@ -68,7 +68,7 @@ async def reset_esp32():
 def write_to_esp32(input: str):
     try:
         if not app.state.ser.is_open:
-            raise RuntimeError("Serial port is not open.")
+            raise RuntimeError("Serial port is not open to write.")
         
         if input is None:
             raise ValueError("Input is None.")
@@ -93,6 +93,9 @@ async def read_serial_lines(websocket: WebSocket = None, condition="ok", timeout
     buffer = ""
     response = []
 
+    if not app.state.ser.is_open:
+        raise RuntimeError("Serial port is not open to read.")
+
     while processing_response:
         try:
             # Read bytes (non-blocking)
@@ -112,7 +115,7 @@ async def read_serial_lines(websocket: WebSocket = None, condition="ok", timeout
                 if "echo:busy: processing" in line:
                     continue
 
-                if websocket is not None:
+                if websocket is not None and websocket.client_state == WebSocketState.CONNECTED:
                     line = line.replace("echo:", "")
                     response.append(line)
                     log = create_log(f"Received: {line}")
@@ -139,10 +142,10 @@ async def read_serial_lines(websocket: WebSocket = None, condition="ok", timeout
         await asyncio.sleep(0.01)
 
     # Check if response contains an error and returns result as boolean
-    if any("error" in line.lower() for line in response): 
-        return False
-    else:
+    if not response and not any("error" in line.lower() for line in response): 
         return True
+    else:
+        return False
 
 async def get_position(condition="ok", timeout=10):
     start_time = time.time()

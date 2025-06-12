@@ -2,52 +2,26 @@
 
 import "./globals.css";
 import { ConnectedProvider } from '../context/ConnectedContext';
-import { getConnectionStatus } from "../context/ConnectedContext";
-import ArmingButton from '../components/ArmingButton';
 import { StepsProvider } from "@/context/StepsContext";
+import NavBar from "@/components/NavBar";
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const ConnectedStatus = () => {
-    const { connected } = getConnectionStatus(); // Access context here
-
-    return (
-      <div className={`flex-1 btn justify-start ${connected ? 'bg-success text-white' : 'bg-error text-white'}`}>
-        {connected ? 'Connected to ESP32' : 'Connecting...'}
-      </div>
-    );
-  }
-
   return (
     <html data-theme="silk">
-      <body >
+      <body>
         <ConnectedProvider>
           <StepsProvider>
-            <div className="h-screen bg-base-100 text-base-content p-2 flex flex-col ">
-              {/* Top Navigation */}
-              <div className="navbar shadow-lg flex space-x-2 mb-4">
-                
-                <div role="tablist" className="tabs tabs-box w-1/5">
-                  <a role="tab" className="tab w-1/3 tab-active">SETUP</a>
-                  <a role="tab" className="tab w-1/3">OVERVIEW</a>
-                  <a role="tab" className="tab w-1/3">CAMERA</a>
-                </div> 
-                  
-                {/* Access context value */}
-                <ConnectedStatus />
-                
-                {/* Arming Button */}
-                <ArmingButton />
-              </div>
-              {/* Rest of Page */}
+            <div className="h-screen bg-base-100 text-base-content p-2 flex flex-col">
+              <NavBar />
               {children}
             </div>
           </StepsProvider>
         </ConnectedProvider>
       </body>
     </html>
-  )
+  );
 }

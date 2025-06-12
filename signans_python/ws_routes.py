@@ -4,9 +4,11 @@ import json
 import asyncio
 
 import cv2
-from fastapi import WebSocket, WebSocketDisconnect, APIRouter
+from fastapi import WebSocket, WebSocketDisconnect, APIRouter, HTTPException
 from fastapi.websockets import WebSocketState
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse, JSONResponse
+from pathlib import Path
+import os
 import numpy as np
 from state import shared_positions, shared_status, set_all
 from main import app
@@ -14,8 +16,8 @@ from device_scanner import getConnectionStatus
 from serial_handler import reset_esp32, write_to_esp32, read_serial_lines, get_position
 from log_manager import create_log, get_logs, get_latest_log
 from draw_loop import main_draw_loop, main_test_loop, main_debug_loop
-from camera_capture import stream_raw_frames, stream_transformed_frames, camera
-from state import camera_perspective_transfrom, set_camera_transform
+from camera_capture import stream_raw_frames, stream_transformed_frames, cam_stream
+from state import camera_perspective_transfrom, set_camera_transform, save_state, load_state
 from gcode_commands import gcode_commands
 import re
 
@@ -35,7 +37,6 @@ async def websocket_status(websocket: WebSocket):
 @router.websocket("/ws/commander/")
 async def websocket_commander(websocket: WebSocket):
     await websocket.accept()
-    
 
     pattern = r'\b(?:' + '|'.join(re.escape(cmd) for cmd in gcode_commands) + r')\b'
 
@@ -43,7 +44,11 @@ async def websocket_commander(websocket: WebSocket):
     for entry in get_logs():
         await websocket.send_text(entry)
 
-     # Flush any pending serial messages
+    while app.state.ser is None:
+        create_log(f"ESP not found")
+        await asyncio.sleep(1)
+
+    # Flush any pending serial messages
     create_log(f"Flushing serial (please wait, ok)")
     await read_serial_lines(websocket, condition="ok", timeout=1)
     create_log(f"Serial Flushed! (ok)")
@@ -69,6 +74,10 @@ async def websocket_commander(websocket: WebSocket):
 
             # Behaviour for resetting
             if data == "RESET":
+                if app.state.draw_task and not app.state.draw_task.done():
+                    app.state.draw_task.cancel()
+                    app.state.draw_task = None
+                
                 success = await reset_esp32()
                 if success:
                     create_log("ESP32 Reset: SUCCESS (ok)")
@@ -81,6 +90,18 @@ async def websocket_commander(websocket: WebSocket):
             elif data == "DEBUG":
                 set_all()
                 create_log("DEBUG MODE ACTIVATED: know what this does before using it... (ok)")
+                await websocket.send_text(get_latest_log())
+                continue
+
+            elif data == "SAVE":
+                save_state("State_save.json")
+                create_log("State saved (ok)")
+                await websocket.send_text(get_latest_log())
+                continue
+            
+            elif data == "LOAD":
+                load_state("State_save.json")
+                create_log("states Loaded(ok)")
                 await websocket.send_text(get_latest_log())
                 continue
 
@@ -198,7 +219,6 @@ async def websocket_capture_position(websocket: WebSocket):
                 "message": str(e)
             })
 
-
 @router.websocket("/ws/captureCameraPosition/")
 async def websocket_capture_position(websocket: WebSocket):
     await websocket.accept()        
@@ -249,8 +269,6 @@ async def websocket_capture_position(websocket: WebSocket):
                 "message": str(e)
             })
 
-
-
 @router.websocket("/ws/drawLoopArming/")
 async def websocket_drawLoopArming(websocket: WebSocket):
     await websocket.accept()
@@ -297,21 +315,24 @@ async def websocket_drawLoopArming(websocket: WebSocket):
 
 @router.post("/capture")
 def capture_image():
-    success, frame = camera.read()
-    if not success:
+    frame = cam_stream.get_frame()
+    if frame is None:
         return {"error": "Failed to capture image"}
 
     # Save the image with timestamp
     filename = f"captured_{int(time.time())}.jpg"
-    filepath = os.path.join("captured_images", filename)
+    folder = "captured_images"
+    os.makedirs(folder, exist_ok=True)
+    filepath = os.path.join(folder, filename)
     cv2.imwrite(filepath, frame)
 
-    # Return image path or public URL (if served)
+    # Return image path or public URL (adjust URL as needed)
     return {"filename": filename, "url": f"http://robosignans2:8000/captured/{filename}"}
 
 @router.get("/video")
 def video_feed_raw():
     return StreamingResponse(stream_raw_frames(), media_type="multipart/x-mixed-replace; boundary=frame")
+
 
 @router.get("/video_transformed")
 def video_feed_transformed():
@@ -332,3 +353,49 @@ async def websocket_endpoint(websocket: WebSocket):
             set_camera_transform(camera_perspective_transfrom, updated_points)
     except WebSocketDisconnect:
         print("Client disconnected")
+
+
+PLOT_DIR = Path("/home/robosignans2/Project_RobotSignans/signans_python/plots")
+FRAME_DIR = Path("/home/robosignans2/Project_RobotSignans/signans_python/saved_frames")
+
+@app.get("/latest-plot")
+def get_latest_image():
+    image_files = sorted(PLOT_DIR.glob("*.*"), key=os.path.getmtime, reverse=True)
+    if not image_files:
+        raise HTTPException(status_code=404, detail="No images found.")
+    
+    latest_image = image_files[0]
+    return FileResponse(latest_image, media_type="image/jpeg")
+
+@app.get("/latest-plot-meta")
+def get_latest_image_meta():
+    image_files = sorted(PLOT_DIR.glob("*.*"), key=os.path.getmtime, reverse=True)
+    if not image_files:
+        return JSONResponse({"available": False})
+    
+    latest_image = image_files[0]
+    return JSONResponse({
+        "filename": latest_image.name,
+        "last_modified": os.path.getmtime(latest_image)
+    })
+
+@app.get("/latest-frame")
+def get_latest_image():
+    image_files = sorted(FRAME_DIR.glob("*.*"), key=os.path.getmtime, reverse=True)
+    if not image_files:
+        raise HTTPException(status_code=404, detail="No images found.")
+    
+    latest_image = image_files[0]
+    return FileResponse(latest_image, media_type="image/jpeg")
+
+@app.get("/latest-frame-meta")
+def get_latest_image_meta():
+    image_files = sorted(FRAME_DIR.glob("*.*"), key=os.path.getmtime, reverse=True)
+    if not image_files:
+        return JSONResponse({"available": False})
+    
+    latest_image = image_files[0]
+    return JSONResponse({
+        "filename": latest_image.name,
+        "last_modified": os.path.getmtime(latest_image)
+    })

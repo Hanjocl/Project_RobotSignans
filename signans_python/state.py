@@ -1,4 +1,5 @@
 import numpy as np
+import json
 
 class SharedPositions:
     def __init__(self):
@@ -109,3 +110,53 @@ def set_all():
         {"id": 3, "x": 529, "y": 1604},      # Bottom-right
         {"id": 4, "x": 131, "y": 1341},         # Bottom-left
     ]
+
+
+## Saving stuff
+def shared_positions_to_dict(sp: SharedPositions):
+    return {
+        "topLeft": sp.topLeft.tolist(),
+        "topRight": sp.topRight.tolist(),
+        "bottomLeft": sp.bottomLeft.tolist(),
+        "bottomRight": sp.bottomRight.tolist(),
+        "cameraPosition": sp.cameraPosition.tolist(),
+    }
+
+def shared_positions_from_dict(sp: SharedPositions, data: dict):
+    sp.topLeft[:] = data.get("topLeft", [None, None, None])
+    sp.topRight[:] = data.get("topRight", [None, None, None])
+    sp.bottomLeft[:] = data.get("bottomLeft", [None, None, None])
+    sp.bottomRight[:] = data.get("bottomRight", [None, None, None])
+    sp.cameraPosition[:] = data.get("cameraPosition", [None, None, None])
+
+def shared_status_to_dict(ss: SharedStatus):
+    return ss.status._statuses.copy()
+
+def shared_status_from_dict(ss: SharedStatus, data: dict):
+    for step, status in data.items():
+        if step in ss.status._statuses:
+            ss.status._statuses[step] = status
+
+def camera_transform_to_dict(ct: CameraTransformPerspective):
+    return ct.transform.copy()
+
+def camera_transform_from_dict(ct: CameraTransformPerspective, data: list):
+    ct.transform = data
+
+# --- Save to file ---
+def save_state(filename: str):
+    data = {
+        "shared_positions": shared_positions_to_dict(shared_positions),
+        "shared_status": shared_status_to_dict(shared_status),
+        "camera_transform": camera_transform_to_dict(camera_perspective_transfrom),
+    }
+    with open(filename, "w") as f:
+        json.dump(data, f, indent=2)
+
+# --- Load from file ---
+def load_state(filename: str):
+    with open(filename, "r") as f:
+        data = json.load(f)
+    shared_positions_from_dict(shared_positions, data.get("shared_positions", {}))
+    shared_status_from_dict(shared_status, data.get("shared_status", {}))
+    camera_transform_from_dict(camera_perspective_transfrom, data.get("camera_transform", []))

@@ -22,10 +22,13 @@ export const ConnectedProvider = ({ children }: { children: ReactNode }) => {
     socket.onmessage = (event) => {
       const status = event.data === "True";
       setConnected(status);
+      setState(event.data)
     };
 
     // Handle WebSocket errors
     socket.onerror = (error) => {
+      setConnected(false)
+      setState("Error")
       console.error('WebSocket Error:', error);
     };
 

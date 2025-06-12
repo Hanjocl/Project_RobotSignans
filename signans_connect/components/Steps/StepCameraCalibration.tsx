@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
-import Image from 'next/image';
+import VideoStream from '@/components/VideoStream';
 
 type StepCameraCalibrationProps = {
   handleStepComplete: (step: string) => void;
-  relativeMove: (cmd: string) => void;
   status: string;
 };
 
@@ -15,16 +14,16 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
   const [isCalibrated, setIsCalibrated] = useState(false);
   const [cameraCoords, setCameraCoords] = useState<Coordinates>(null);
 
-  const socketRefCamera = useRef<WebSocket | null>(null);
+  const socketRef_Camera = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    socketRefCamera.current = new WebSocket("ws://robosignans2:8000/ws/captureCameraPosition/");
+    socketRef_Camera.current = new WebSocket("ws://robosignans2:8000/ws/captureCameraPosition/");
 
-    socketRefCamera.current.onopen = () => {
+    socketRef_Camera.current.onopen = () => {
       console.log("Camera position socket connected");
     };
 
-    socketRefCamera.current.onmessage = (event) => {
+    socketRef_Camera.current.onmessage = (event) => {
       const data = JSON.parse(event.data);
       if (data.status === "captured" && data.positionName === "cameraPosition" && data.position) {
         const coordObject = {
@@ -34,7 +33,6 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
         };
         setCameraCoords(coordObject);
         setIsCalibrated(true);
-        handleStepComplete("Camera Calibration");
       }
 
       if (data.status === "error" && data.message) {
@@ -44,23 +42,17 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
     };
 
     return () => {
-      socketRefCamera.current?.close();
+      socketRef_Camera.current?.close();
     };
-  }, [handleStepComplete]);
+  }, [setIsCalibrated]);
 
   const handleCapture = () => {
-    if (socketRefCamera.current?.readyState === WebSocket.OPEN) {
-      socketRefCamera.current.send(
-        JSON.stringify({
-          command: "capture",
-          positionName: "cameraPosition",
-        })
-      );
+    if (socketRef_Camera.current?.readyState === WebSocket.OPEN) {
+      handleStepComplete("Camera Calibration");
     } else {
       console.error("WebSocket not open.");
     }
   };
-
 
   const [draggedPoints, setDraggedPoints] = useState([
     { id: 1, x: 0, y: 0 },
@@ -69,7 +61,10 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
     { id: 4, x: 0, y: 0 },
   ]); // Initial positions of draggable points as percentages
 
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  // Canvas refs for original and transformed video
+  const canvasRefOriginal = useRef<HTMLCanvasElement | null>(null);
+  const canvasRefTransformed = useRef<HTMLCanvasElement | null>(null);
+
   const isDraggingRef = useRef(false);
   const currentDragPointRef = useRef<number | null>(null);
 
@@ -112,46 +107,65 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
     });
   };
 
-  // Handle image load event
-  const handleImageLoad = () => {
-    const canvas = canvasRef.current;
-    const img = imgRefOriginal.current;
-    if (canvas && img) {
-      canvas.width = img.clientWidth;
-      canvas.height = img.clientHeight;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        drawPoints(ctx);
-      }
-    }
-  };
+  // Setup canvas size to match rendered size
+  useEffect(() => {
+    const canvas = canvasRefOriginal.current;
+    if (!canvas) return;
 
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      drawPoints(ctx);
+    }
+  }, []);
+
+  // Redraw on draggedPoints update
+  useEffect(() => {
+    const canvas = canvasRefOriginal.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      drawPoints(ctx);
+    }
+  }, [draggedPoints]);
+
+  // Handle drag start
   const handleMouseDown = (e: React.MouseEvent) => {
-  const canvas = canvasRef.current;
-  if (!canvas) return;
-
-  const { offsetX, offsetY } = e.nativeEvent;
-  const scaleX = canvas.width / 1080;
-  const scaleY = canvas.height / 1920;
-
-  draggedPoints.forEach((point, index) => {
-    const pointX = point.x * scaleX;
-    const pointY = point.y * scaleY;
-    const distance = Math.sqrt((offsetX - pointX) ** 2 + (offsetY - pointY) ** 2);
-
-    if (distance < 10) {
-      isDraggingRef.current = true;
-      currentDragPointRef.current = index;
-    }
-  });
-};
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDraggingRef.current || currentDragPointRef.current === null) return;
-    const canvas = canvasRef.current;
+    const canvas = canvasRefOriginal.current;
     if (!canvas) return;
 
     const { offsetX, offsetY } = e.nativeEvent;
+    const scaleX = canvas.width / 1080;
+    const scaleY = canvas.height / 1920;
+
+    draggedPoints.forEach((point, index) => {
+      const pointX = point.x * scaleX;
+      const pointY = point.y * scaleY;
+      const distance = Math.sqrt((offsetX - pointX) ** 2 + (offsetY - pointY) ** 2);
+
+      // Debug logging
+      // console.log(`Checking point ${index}: distance = ${distance}, mouse=(${offsetX},${offsetY}), point=(${pointX},${pointY})`);
+
+      if (distance < 10) {
+        isDraggingRef.current = true;
+        currentDragPointRef.current = index;
+        // console.log("Start dragging point:", index);
+      }
+    });
+  };
+
+  // Handle dragging movement
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingRef.current || currentDragPointRef.current === null) return;
+    const canvas = canvasRefOriginal.current;
+    if (!canvas) return;
+
+    const { offsetX, offsetY } = e.nativeEvent;
+    // Convert canvas pixel coords to internal 1080x1920 coordinate system
     const scaleX = 1080 / canvas.width;
     const scaleY = 1920 / canvas.height;
 
@@ -165,11 +179,11 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
     setDraggedPoints(newPoints);
   };
 
+  // Handle drag end
   const handleMouseUp = () => {
     isDraggingRef.current = false;
     currentDragPointRef.current = null;
 
-    // Send updated points to server
     if (socketRefPoints.current?.readyState === WebSocket.OPEN) {
       socketRefPoints.current.send(JSON.stringify(draggedPoints));
     }
@@ -177,39 +191,26 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
 
   const imgRefOriginal = useRef<HTMLImageElement | null>(null);
   const imgRefTransformed = useRef<HTMLImageElement | null>(null);
-  useEffect(() => {
-    const img = imgRefOriginal.current;
-    const canvas = canvasRef.current;
-
-    if (img && canvas) {
-      canvas.width = img.clientWidth;
-      canvas.height = img.clientHeight;
-    }
-  }, [draggedPoints]);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d");
-    if (ctx) {
-      drawPoints(ctx);
-    } else {
-      console.warn("Canvas context not found");
-    }
-  }, [draggedPoints, drawPoints]);
-
 
   const socketRefPoints = useRef<WebSocket | null>(null);
 
   useEffect(() => {
     const handleResize = () => {
-      console.log("Window resized:", window.innerWidth, window.innerHeight);
-      
-      // TODO -> LOGIC TO UPDATE POITNS
+      // On resize, update canvas size and redraw points
+      const canvas = canvasRefOriginal.current;
+      if (!canvas) return;
+
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        drawPoints(ctx);
+      }
     };
-    
-    window.addEventListener("resize", handleResize);;
+
+    window.addEventListener("resize", handleResize);
 
     return () => {
       window.removeEventListener("resize", handleResize);
@@ -242,20 +243,13 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
   return (
     <div className="max-h-[80vh] p-4">
       {/* Livestream grid */}
-      <div className="grid grid-cols-2 gap-4 w-full">
-        <div className="relative w-full h-[your-height-here] p-4">
-          <Image
-            ref={imgRefOriginal}
-            src="http://robosignans2:8000/video"
-            alt="Live video feed"
-            layout="fill"
-            objectFit="contain"
-            onLoadingComplete={handleImageLoad}
-            priority={true} // optional, if you want it to load eagerly
-          />
+      <div className="grid grid-cols-2 gap-4 w-full h-[70vh]">
+        {/* Original video with canvas overlay */}
+        <div className="relative w-full h-full">
+          <VideoStream imageUrl="http://robosignans2:8000/video" />
           <canvas
-            ref={canvasRef}
-            className="absolute top-0 left-0"
+            ref={canvasRefOriginal}
+            className="absolute top-0 left-0 w-full h-full"
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
@@ -263,37 +257,13 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
           />
         </div>
 
-        <div className="max-h-[80vh] p-4">
-        {/* Livestream grid */}
-        <div className="grid grid-cols-2 gap-4 w-full">
-          <div className="relative w-full h-[your-height-here] p-4">
-            <Image
-              ref={imgRefOriginal}
-              src="http://robosignans2:8000/video"
-              alt="Live video feed"
-              layout="fill"
-              objectFit="contain"
-              onLoadingComplete={handleImageLoad}
-              priority={true} // optional, if you want it to load eagerly
-            />
-            <canvas
-              ref={canvasRef}
-              className="absolute top-0 left-0"
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseOut={handleMouseUp}
-            />
-          </div>
-        </div>
-      </div>
-
-        <div className="w-full">
-          <img
-            ref={imgRefTransformed}
-            src="http://robosignans2:8000/video_transformed"
-            className="object-contain w-full p-4"
-            onLoad={handleImageLoad}
+        {/* Transformed video with its own canvas */}
+        <div className="relative w-full h-full">
+          <VideoStream imageUrl="http://robosignans2:8000/video_transformed" />
+          <canvas
+            ref={canvasRefTransformed}
+            className="absolute top-0 left-0 w-full h-full"
+            // Optional: Add handlers here if interaction is needed
           />
         </div>
       </div>

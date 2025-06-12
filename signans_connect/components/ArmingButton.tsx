@@ -6,61 +6,92 @@ const ArmingButton = () => {
   const { state, setState, connected } = getConnectionStatus();
   const { steps } = getStepStatus();
   const [isPressed, setIsPressed] = useState(false);
-  const [pendingResponse, setPendingResponse] = useState(false); // New state for waiting period
-  const socketRef = useRef<WebSocket | null>(null);
+  const [pendingResponse, setPendingResponse] = useState(false);
+  const socketDraw = useRef<WebSocket | null>(null);
+
+  const socket_cmd = useRef<WebSocket | null>(null);
+
+  const sendCommand = (cmd: string) => {
+    if (socket_cmd.current && socket_cmd.current.readyState === WebSocket.OPEN) {
+      socket_cmd.current.send(cmd);
+    }
+  };
+
+  // Move ResetESP32 here so it's accessible for the keydown handler
+  const ResetESP32 = () => {
+    sendCommand('RESET');
+    window.location.reload();
+  };
+
+  useEffect(() => {
+    // Connect to commander WebSocket
+    socket_cmd.current = new WebSocket("ws://robosignans2:8000/ws/commander/");
+
+    return () => {
+      socket_cmd.current?.close();
+    };
+  }, []);
+
+  useEffect(() => {
+    // Listener for Escape key to reset ESP32
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        ResetESP32();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []); // empty deps so this runs once
 
   useEffect(() => {
     if (connected) {
-      socketRef.current = new WebSocket("ws://robosignans2:8000/ws/drawLoopArming/");
+      socketDraw.current = new WebSocket("ws://robosignans2:8000/ws/drawLoopArming/");
 
-      socketRef.current.onopen = () => {
+      socketDraw.current.onopen = () => {
         console.log("WebSocket connected.");
       };
 
-      socketRef.current.onerror = (error) => {
+      socketDraw.current.onerror = (error) => {
         console.error("WebSocket error:", error);
-        setPendingResponse(false); // Stop pending if there's an error
+        setPendingResponse(false);
       };
 
-      socketRef.current.onmessage = (event) => {
+      socketDraw.current.onmessage = (event) => {
         const state = event.data;
-
-        setState(event.data);
+        setState(state);
 
         if (state === "Drawing") {
           setIsPressed(true);
         } else {
           setIsPressed(false);
-        } 
+        }
 
-        setPendingResponse(false); // Clear pending state when response is received
+        setPendingResponse(false);
       };
 
       return () => {
-        socketRef.current?.close();
+        socketDraw.current?.close();
       };
     }
   }, [connected, setState]);
 
   const StartDrawingSequence = () => {
-    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-      if (pendingResponse) return
+    if (socketDraw.current && socketDraw.current.readyState === WebSocket.OPEN) {
+      if (pendingResponse) return;
       const action = !isPressed ? "TryStartDrawing" : "Stop";
-      socketRef.current.send(action);
-      setPendingResponse(true); // Start waiting for server response
+      socketDraw.current.send(action);
+      setPendingResponse(true);
     }
-  };
-
-  const ResetESP32 = () => {
-    sendCommand('RESET')
-    window.location.reload()
   };
 
   // Determine button styling
   let buttonClass = 'btn';
   let buttonText = '';
 
-  // Check if all steps are completed
   const allStepsCompleted = steps.every(step => step.status === 'complete');
 
   if (!connected) {
@@ -80,22 +111,6 @@ const ArmingButton = () => {
     buttonText = 'START DRAWING';
   }
 
-  const socket_cmd = useRef<WebSocket | null>(null);
-  useEffect(() => {
-      // Connect to WebSocket server
-      socket_cmd.current = new WebSocket("ws://robosignans2:8000/ws/commander/");
-
-      return () => {
-        socket_cmd.current?.close();
-      };
-  }, []);
-
-  const sendCommand = (cmd: string) => {
-    if (socket_cmd.current && socket_cmd.current.readyState === WebSocket.OPEN) {
-      socket_cmd.current.send(cmd);
-    }
-  };
-
   return (
     <div className="flex gap-2">
       <button
@@ -105,10 +120,10 @@ const ArmingButton = () => {
       >
         {buttonText}
       </button>
-      <button className="btn btn-outline" onClick={() => ResetESP32()}>RESET</button>
+      <button className="btn btn-outline" onClick={ResetESP32}>RESET</button>
       <button className="btn btn-error" onClick={() => sendCommand(`M112`)}>STOP</button>
     </div>
-);
+  );
 };
 
 export default ArmingButton;
