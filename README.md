@@ -146,6 +146,7 @@ To make it run on boot:
 
     ```
     sudo systemctl stop robo_signans.service
+    sudo systemctl disable robo_signans.service
     sudo systemctl daemon-reload
     sudo systemctl status robo_signans.service
     ```
