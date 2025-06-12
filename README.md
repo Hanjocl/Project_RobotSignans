@@ -6,22 +6,30 @@ The raspberry is used to create a user interface, two way communication with a E
 
 Initial Setup:
 ---
-1. Update all packages
+1. Update all Packages
 2. Download python
-3. Download this git to Pi
+3. Download this git to Pi (I put it in the home dir)
 
 **Setup Front-end (NextJS)**
-5. Install NodeSource (see: https://github.com/nodesource/distributions?tab=readme-ov-file#installation-instructions)
-6. Install Yarn (see: https://classic.yarnpkg.com/lang/en/docs/install/#windows-stable)
-7. Install Yarn more: with commands
-    ```yarn install```
-    ```yarn add next react react-dom```
-8. To for development:
-    ```yarn dev```
-9. Build for deployment:
-    ```yarn build```
-10. Start server:
-    ```yarn start```
+1. Install NodeSource (see: https://github.com/nodesource/distributions?tab=readme-ov-file#installation-instructions)
+2. Install Yarn (see: https://classic.yarnpkg.com/lang/en/docs/install/#windows-stable)
+3. Install Yarn more: with commands
+     ```
+    yarn install
+    yarn add next react react-dom
+    ```
+5. Start server in development mode:
+    ```
+    yarn dev
+    ```
+7. Build for deployment (restart services for sanity sake)
+    ```
+    yarn build
+    ```
+9. Start server manaully:
+    ```
+    yarn start
+    ```
      
 
   **Setup Back-end (Python)**
@@ -44,15 +52,19 @@ Initial Setup:
     pip install matplotlib
     pip install pyserial
     ```
-6. To run back-end in Virtual env 
-      ```python main.py```
+6. To run back-end in Virtual env
+    ```
+    python main.py
+    ```
   
 To make it run on boot:
 ---
 1. In the home/[user] dir, create a file called "start-all.sh"
 
-    ```nano /home/[USERNAME]/start-all.sh```
-2. Put the following in there (also included in the docs):
+    ```
+   nano /home/[USERNAME]/start-all.sh
+    ```
+3. Put the following in there (also included in the docs):
     ```
     #!/bin/bash
 
@@ -76,15 +88,19 @@ To make it run on boot:
    
 3.Use this command to make it executable:
 
-    ```chmod +x start-all.sh```
+    ```
+    chmod +x start-all.sh
+    ```
 4. Test exectuable with:
 
-    ```./start-all.sh```
-5. Create service file:
+    ```
+   ./start-all.sh
+    ```
+6. Create service file:
     
     ```sudo nano /etc/systemd/system/startup-apps.service```
 
-6. Add the following (ctrl+0, enter, ctrl+x to save):
+7. Add the following (ctrl+0, enter, ctrl+x to save):
     ```
     [Unit]
     Description=Start Next.js frontend and Python backend on boot
@@ -100,7 +116,7 @@ To make it run on boot:
     [Install]
     WantedBy=multi-user.target
     ```
-7.  Reload services & check status:
+8.  Reload services & check status:
     ```
     sudo systemctl daemon-reload
     sudo systemctl enable robo_signans.service
@@ -116,13 +132,22 @@ To make it run on boot:
     
 9. Reboot and hope it works:
 
-    ```sudo reboot```
+    ```
+   sudo reboot
+    ```
 
-10. See real-tine logging:
+11. See real-tine logging:
 
-    ```journalctl -u startup-apps.service -f```
+    ```
+    journalctl -u startup-apps.service -f
+    ```
 
-11. To stop service for development:
+13. To stop service for development:
 
-    ```sudo systemctl stop startup-apps.service```
+    ```
+    sudo systemctl stop robo_signans.service
+    sudo systemctl disable robo_signans.service
+    sudo systemctl daemon-reload
+    sudo systemctl status robo_signans.service
+    ```
 
