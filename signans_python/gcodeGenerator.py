@@ -1,14 +1,22 @@
 import os
 import re
 
-def generate_gcodeLine(X, Y, Z, Feed = None):
-    if Feed is None:
-        return f"G1 X{X} Y{Y} Z{Z}"
-    return f"G1 X{X} Y{Y} Z{Z} F{Feed}"
+def generate_gcodeLine(X=None, Y=None, Z=None, Feed=None):
+    coords = []
+    if X is not None:
+        coords.append(f"X{X}")
+    if Y is not None:
+        coords.append(f"Y{Y}")
+    if Z is not None:
+        coords.append(f"Z{Z}")
+    line = "G1 " + " ".join(coords)
+    if Feed is not None:
+        line += f" F{Feed}"
+    return line
+
 
 async def generate_gcodeFile(path, Feed = None):
     gcode = []
-    gcode.append("G21")  # Set units to mm
     gcode.append("G90")  # Absolute positioning
     print("DEBUG FLAG")
     

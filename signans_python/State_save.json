@@ -1,0 +1,62 @@
+{
+  "shared_positions": {
+    "topLeft": [
+      -755.07,
+      -186.66,
+      -1301.7
+    ],
+    "topRight": [
+      -755.07,
+      173.34,
+      -1301.7
+    ],
+    "bottomLeft": [
+      -405.07,
+      -186.66,
+      -1501.7
+    ],
+    "bottomRight": [
+      -405.07,
+      173.34,
+      -1501.7
+    ],
+    "cameraPosition": [
+      194.9,
+      273.3,
+      -1561.7
+    ]
+  },
+  "shared_status": {
+    "Homing": "complete",
+    "Connect Wires": "complete",
+    "Corner Calibration": "complete",
+    "Camera Calibration": "complete",
+    "Final Checklist": "complete"
+  },
+  "camera_transform": [
+    {
+      "id": 1,
+      "x": 490,
+      "y": 830
+    },
+    {
+      "id": 2,
+      "x": 981,
+      "y": 1016
+    },
+    {
+      "id": 3,
+      "x": 529,
+      "y": 1604
+    },
+    {
+      "id": 4,
+      "x": 131,
+      "y": 1341
+    }
+  ],
+  "movement_settings": {
+    "normal_speed": 2000,
+    "drawing_speed": 1200
+  }
+}

@@ -17,7 +17,7 @@ from serial_handler import reset_esp32, write_to_esp32, read_serial_lines, get_p
 from log_manager import create_log, get_logs, get_latest_log
 from draw_loop import main_draw_loop, main_test_loop, main_debug_loop
 from camera_capture import stream_raw_frames, stream_transformed_frames, cam_stream
-from state import camera_perspective_transfrom, set_camera_transform, save_state, load_state
+from state import camera_perspective_transfrom, movement_settings, set_camera_transform, save_state, load_state
 from gcode_commands import gcode_commands
 import re
 
@@ -72,6 +72,7 @@ async def websocket_commander(websocket: WebSocket):
                 await websocket.send_text(get_latest_log())
                 continue
 
+            # CUSTOM COMMANDS
             # Behaviour for resetting
             if data == "RESET":
                 if app.state.draw_task and not app.state.draw_task.done():
@@ -86,7 +87,7 @@ async def websocket_commander(websocket: WebSocket):
                     create_log("ESP32 Reset: FAILED (ok)")
                     await websocket.send_text(get_latest_log())
                 continue
-            # Behaviour for debugging
+            
             elif data == "DEBUG":
                 set_all()
                 create_log("DEBUG MODE ACTIVATED: know what this does before using it... (ok)")
@@ -102,6 +103,32 @@ async def websocket_commander(websocket: WebSocket):
             elif data == "LOAD":
                 load_state("State_save.json")
                 create_log("states Loaded(ok)")
+                await websocket.send_text(get_latest_log())
+                continue
+
+            elif data.startswith("FEED_D"):
+                parts = data.split()
+                if len(parts) == 2:
+                    try:
+                        movement_settings.drawing_speed = int(parts[1])
+                        create_log(f"drawing_speed updated = {movement_settings.drawing_speed} (ok)")
+                    except ValueError:
+                        create_log("Invalid FEED_D value received (not a number, ok)")
+                else:
+                    create_log(f"Current drawing_speed = {movement_settings.drawing_speed} (ok)")
+                await websocket.send_text(get_latest_log())
+                continue
+
+            elif data.startswith("FEED_N"):
+                parts = data.split()
+                if len(parts) == 2:
+                    try:
+                        movement_settings.normal_speed = int(parts[1])
+                        create_log(f"drawing_speed updated = {movement_settings.normal_speed}")
+                    except ValueError:
+                        create_log("Invalid FEED_D value received (not a number, ok)")
+                else:
+                    create_log(f"Current drawing_speed = {movement_settings.normal_speed} (ok)")
                 await websocket.send_text(get_latest_log())
                 continue
 

@@ -88,7 +88,7 @@ def image_to_path(image):
 
     return path_2d
 
-async def visualize_path_3d(path_3d, P0, P1, P2, P3, output_file='path_projected.png', folder='plots'):
+async def visualize_path_3d(path_3d, P0, P1, P2, P3, output_file='path_projected.jpg', folder='plots'):
     os.makedirs(folder, exist_ok=True)
     """Visualizes the 3D path and saves the plot."""
 

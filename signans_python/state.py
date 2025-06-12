@@ -57,13 +57,22 @@ shared_status = SharedStatus()
 class CameraTransformPerspective:
     def __init__(self):
         self.transform = [
-        {"id": 1, "x": 0, "y": 0},            # Top-left
-        {"id": 2, "x": 1080, "y": 0},         # Top-right
-        {"id": 3, "x": 1080, "y": 1920},      # Bottom-right
-        {"id": 4, "x": 0, "y": 1920},         # Bottom-left
-    ] 
+            {"id": 1, "x": 0, "y": 0},            # Top-left
+            {"id": 2, "x": 1080, "y": 0},         # Top-right
+            {"id": 3, "x": 1080, "y": 1920},      # Bottom-right
+            {"id": 4, "x": 0, "y": 1920},         # Bottom-left
+        ] 
 
 camera_perspective_transfrom = CameraTransformPerspective()
+
+
+class MovementSettings:
+    def __init__(self, normal_speed=1600, drawing_speed=1200):
+        self.normal_speed = normal_speed
+        self.drawing_speed = drawing_speed
+
+movement_settings = MovementSettings()
+
 
 def get_transform_store():
     return camera_perspective_transfrom
@@ -91,25 +100,34 @@ def reset_all():
         {"id": 4, "x": 0, "y": 1920},         # Bottom-left
     ]
 
+    # Reset movement speeds
+    movement_settings.normal_speed = 1600
+    movement_settings.drawing_speed = 1200
+
+
 def set_all():
-    # Reset shared positions
+    # Set shared positions
     shared_positions.topLeft[:] = [-755.07, -186.66 ,-1301.7]
     shared_positions.topRight[:] = [-755.07, 173.34, -1301.7]
     shared_positions.bottomLeft[:] = [-405.07, -186.66,  -1501.7]
     shared_positions.bottomRight[:] = [-405.07, 173.34, -1501.7]
     shared_positions.cameraPosition[:] = [194.9, 273.3, -1561.7]
 
-    # Reset shared status
+    # Set shared status
     for step in shared_status.status._statuses:
         shared_status.status._statuses[step] = "complete"
 
-    # Reset camera perspective transform
+    # Set camera perspective transform
     camera_perspective_transfrom.transform = [
         {"id": 1, "x": 490, "y": 830},            # Top-left
         {"id": 2, "x": 981, "y": 1016},         # Top-right
-        {"id": 3, "x": 529, "y": 1604},      # Bottom-right
-        {"id": 4, "x": 131, "y": 1341},         # Bottom-left
+        {"id": 3, "x": 529, "y": 1604},          # Bottom-right
+        {"id": 4, "x": 131, "y": 1341},          # Bottom-left
     ]
+
+    # Set movement speeds
+    movement_settings.normal_speed = 1600
+    movement_settings.drawing_speed = 1200
 
 
 ## Saving stuff
@@ -143,12 +161,23 @@ def camera_transform_to_dict(ct: CameraTransformPerspective):
 def camera_transform_from_dict(ct: CameraTransformPerspective, data: list):
     ct.transform = data
 
+def movement_settings_to_dict(ms: MovementSettings):
+    return {
+        "normal_speed": ms.normal_speed,
+        "drawing_speed": ms.drawing_speed
+    }
+
+def movement_settings_from_dict(ms: MovementSettings, data: dict):
+    ms.normal_speed = data.get("normal_speed", 1600)
+    ms.drawing_speed = data.get("drawing_speed", 1200)
+
 # --- Save to file ---
 def save_state(filename: str):
     data = {
         "shared_positions": shared_positions_to_dict(shared_positions),
         "shared_status": shared_status_to_dict(shared_status),
         "camera_transform": camera_transform_to_dict(camera_perspective_transfrom),
+        "movement_settings": movement_settings_to_dict(movement_settings),
     }
     with open(filename, "w") as f:
         json.dump(data, f, indent=2)
@@ -160,3 +189,4 @@ def load_state(filename: str):
     shared_positions_from_dict(shared_positions, data.get("shared_positions", {}))
     shared_status_from_dict(shared_status, data.get("shared_status", {}))
     camera_transform_from_dict(camera_perspective_transfrom, data.get("camera_transform", []))
+    movement_settings_from_dict(movement_settings, data.get("movement_settings", {}))

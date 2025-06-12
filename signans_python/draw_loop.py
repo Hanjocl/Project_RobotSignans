@@ -6,7 +6,7 @@ from gcodeGenerator import generate_gcodeFile, generate_gcodeLine, save_gcode_to
 from path_processing import get_3d_path_from_image, visualize_path_3d
 from camera_capture import get_transformed_frame, save_frame_with_incrementing_filename
 from log_manager import create_log
-from state import shared_positions as pos
+from state import shared_positions as pos, movement_settings 
 
 async def main_test_loop():
     while True:
@@ -35,14 +35,9 @@ async def main_draw_loop():
         create_log("Send: G90 (ok)")
         await wait_until_ready()
 
-        # Set camera speed
-        write_to_esp32("G0 F960")
-        create_log("Send: G0 F960 (ok)")
-        await wait_until_ready()
-
         create_log("Going to camera position (ok)")
-        line = generate_gcodeLine(pos.cameraPosition[0], pos.cameraPosition[1], pos.cameraPosition[2])
-        create_log(f"Generated line: {line} (ok)")
+        line = generate_gcodeLine(pos.cameraPosition[0], pos.cameraPosition[1], pos.cameraPosition[2], movement_settings.normal_speed)
+        create_log(f"send line: {line} (ok)")
         await asyncio.sleep(1)
 
         write_to_esp32(line)
@@ -87,8 +82,9 @@ async def main_draw_loop():
             raise ValueError("Serial Connection failed! (ok)")
         
         # Set drawing speed
-        write_to_esp32("G0 F1200")
-        create_log("Send: G0 F1200 (ok)")
+        line = generate_gcodeLine(Feed = movement_settings.drawing_speed)
+        write_to_esp32(line)
+        create_log(f"send line: {line} (ok)")
         await wait_until_ready()
 
         # Send the movement command to the ESP32 via serial
@@ -97,7 +93,7 @@ async def main_draw_loop():
             gcode = await generate_gcodeFile(movement_commands)
             await save_gcode_to_file(gcode, "Gcode", "Gcode_testing_")
 
-            create_log(f"Gcode generated (ok)")
+            create_log(f"Gcode saved (ok)")
 
 
             # Go through all the lines
@@ -111,5 +107,5 @@ async def main_draw_loop():
             app.state.draw_task.cancel()
             app.state.draw_task = None 
         
-        create_log(f"Finish cycle (ok)")
-        await asyncio.sleep(4)
+        create_log(f"Finished cycle (ok)")
+        await asyncio.sleep(2)
