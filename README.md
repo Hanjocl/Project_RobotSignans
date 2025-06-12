@@ -145,6 +145,8 @@ To make it run on boot:
 13. To stop service for development:
 
     ```
-    sudo systemctl stop startup-apps.service
+    sudo systemctl stop robo_signans.service
+    sudo systemctl daemon-reload
+    sudo systemctl status robo_signans.service
     ```
 
