@@ -3,11 +3,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import ProgressBar from './ProgressBar';
 import { getConnectionStatus } from "../context/ConnectedContext";
-import { getStepStatus } from "../context/StepsContext";
 
 export default function TerminalPanel() {
   const { state, connected } = getConnectionStatus();
-  const { socketSteps } = getStepStatus();
 
   const [logs, setLogs] = useState<string[]>([]);
   const [manualInput, setManualInput] = useState<string>('');

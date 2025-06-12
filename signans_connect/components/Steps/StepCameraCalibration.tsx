@@ -14,6 +14,45 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
   const [isCalibrated, setIsCalibrated] = useState(false);
   const [cameraCoords, setCameraCoords] = useState<Coordinates>(null);
 
+  const drawPoints = (ctx: CanvasRenderingContext2D) => {
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    const scaleX = ctx.canvas.width / 1080;
+    const scaleY = ctx.canvas.height / 1920;
+
+    // Draw rectangle connecting the points
+    if (draggedPoints.length >= 2) {
+      ctx.beginPath();
+      const first = draggedPoints[0];
+      ctx.moveTo(first.x * scaleX, first.y * scaleY);
+      draggedPoints.slice(1).forEach((point) => {
+        ctx.lineTo(point.x * scaleX, point.y * scaleY);
+      });
+      ctx.lineTo(first.x * scaleX, first.y * scaleY);
+      ctx.strokeStyle = "lime";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Draw points and their coordinates
+    ctx.font = "14px Arial";
+    ctx.fillStyle = "red";
+
+    draggedPoints.forEach((point) => {
+      const cx = point.x * scaleX;
+      const cy = point.y * scaleY;
+
+      // Draw the point
+      ctx.beginPath();
+      ctx.arc(cx, cy, 8, 0, 2 * Math.PI);
+      ctx.fill();
+
+      // Draw the coordinate text
+      ctx.fillStyle = "red";
+      ctx.fillText(`(${Math.round(point.x)}, ${Math.round(point.y)})`, cx + 10, cy - 10);
+      ctx.fillStyle = "red"; // Reset for next point
+    });
+  };
+  
   const socketRef_Camera = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -68,45 +107,6 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
   const isDraggingRef = useRef(false);
   const currentDragPointRef = useRef<number | null>(null);
 
-  const drawPoints = (ctx: CanvasRenderingContext2D) => {
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    const scaleX = ctx.canvas.width / 1080;
-    const scaleY = ctx.canvas.height / 1920;
-
-    // Draw rectangle connecting the points
-    if (draggedPoints.length >= 2) {
-      ctx.beginPath();
-      const first = draggedPoints[0];
-      ctx.moveTo(first.x * scaleX, first.y * scaleY);
-      draggedPoints.slice(1).forEach((point) => {
-        ctx.lineTo(point.x * scaleX, point.y * scaleY);
-      });
-      ctx.lineTo(first.x * scaleX, first.y * scaleY);
-      ctx.strokeStyle = "lime";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-
-    // Draw points and their coordinates
-    ctx.font = "14px Arial";
-    ctx.fillStyle = "red";
-
-    draggedPoints.forEach((point) => {
-      const cx = point.x * scaleX;
-      const cy = point.y * scaleY;
-
-      // Draw the point
-      ctx.beginPath();
-      ctx.arc(cx, cy, 8, 0, 2 * Math.PI);
-      ctx.fill();
-
-      // Draw the coordinate text
-      ctx.fillStyle = "red";
-      ctx.fillText(`(${Math.round(point.x)}, ${Math.round(point.y)})`, cx + 10, cy - 10);
-      ctx.fillStyle = "red"; // Reset for next point
-    });
-  };
-
   // Setup canvas size to match rendered size
   useEffect(() => {
     const canvas = canvasRefOriginal.current;
@@ -120,7 +120,7 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
     if (ctx) {
       drawPoints(ctx);
     }
-  }, []);
+  }, [drawPoints]);
 
   // Redraw on draggedPoints update
   useEffect(() => {
@@ -131,7 +131,7 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
     if (ctx) {
       drawPoints(ctx);
     }
-  }, [draggedPoints]);
+  }, [draggedPoints, drawPoints]);
 
   // Handle drag start
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -188,10 +188,6 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
       socketRefPoints.current.send(JSON.stringify(draggedPoints));
     }
   };
-
-  const imgRefOriginal = useRef<HTMLImageElement | null>(null);
-  const imgRefTransformed = useRef<HTMLImageElement | null>(null);
-
   const socketRefPoints = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -215,7 +211,7 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
     return () => {
       window.removeEventListener("resize", handleResize);
     };
-  }, []);
+  }, [drawPoints]);
 
   useEffect(() => {
     socketRefPoints.current = new WebSocket("ws://robosignans2:8000/ws/camera_perspective_transform/");

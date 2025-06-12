@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback  } from 'react';
 import { getConnectionStatus } from "../context/ConnectedContext";
 import { getStepStatus } from "../context/StepsContext";
 
@@ -11,17 +11,17 @@ const ArmingButton = () => {
 
   const socket_cmd = useRef<WebSocket | null>(null);
 
-  const sendCommand = (cmd: string) => {
+  const sendCommand = useCallback((cmd: string) => {
     if (socket_cmd.current && socket_cmd.current.readyState === WebSocket.OPEN) {
       socket_cmd.current.send(cmd);
     }
-  };
+  }, []);
 
   // Move ResetESP32 here so it's accessible for the keydown handler
-  const ResetESP32 = () => {
+  const ResetESP32 = useCallback(() => {
     sendCommand('RESET');
     window.location.reload();
-  };
+  }, [sendCommand]);
 
   useEffect(() => {
     // Connect to commander WebSocket
@@ -45,7 +45,7 @@ const ArmingButton = () => {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, []); // empty deps so this runs once
+  }, [ResetESP32]);
 
   useEffect(() => {
     if (connected) {

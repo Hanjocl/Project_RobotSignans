@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import Image from 'next/image';
 
 interface LatestImageProps {
   metaUrl: string;
@@ -16,9 +17,11 @@ export default function LatestImage({
   pollInterval = 5000,
 }: LatestImageProps) {
   const [imgSrc, setImgSrc] = useState<string | null>(null);
-  const [lastModified, setLastModified] = useState<number | null>(null);
+  const [lastModified, SetLastModified] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [imgDimensions, setImgDimensions] = useState<{ width: number; height: number } | null>(null);
+
   const progressRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchImageMeta = async () => {
@@ -30,8 +33,15 @@ export default function LatestImage({
       const data = await res.json();
 
       if (data.last_modified && data.last_modified !== lastModified) {
-        setLastModified(data.last_modified);
-        setImgSrc(`${imageUrl}?cacheBust=${Date.now()}`);
+        const newImgSrc = `${imageUrl}?cacheBust=${Date.now()}`;
+        const img = new window.Image();
+        img.src = newImgSrc;
+
+        img.onload = () => {
+          setImgDimensions({ width: img.naturalWidth, height: img.naturalHeight });
+          setImgSrc(newImgSrc);
+          SetLastModified(data.last_modified)
+        };
       }
     } catch (err) {
       console.error(`Error fetching ${title.toLowerCase()} metadata:`, err);
@@ -66,7 +76,7 @@ export default function LatestImage({
       clearInterval(interval);
       if (progressRef.current) clearInterval(progressRef.current);
     };
-  }, [lastModified, pollInterval]);
+  }, [pollInterval, fetchImageMeta]);
 
   return (
     <div className="p-4">
@@ -78,15 +88,18 @@ export default function LatestImage({
       </div>
 
       <div className="max-w-lg w-full">
-        {imgSrc ? (
-          <img
+        {imgSrc && imgDimensions ? (
+          <Image
             src={imgSrc}
             alt={title}
+            width={imgDimensions.width}
+            height={imgDimensions.height}
             className="w-full border border-gray-300 shadow-md rounded"
           />
         ) : (
           <p>Loading {title.toLowerCase()}...</p>
         )}
+
         <div className="w-full bg-gray-300 rounded h-1 mb-4 overflow-hidden">
           <div
             className="bg-gray-500 h-1 transition-all duration-50"

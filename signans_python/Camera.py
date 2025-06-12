@@ -3,12 +3,11 @@ import threading
 import time
 
 class CameraStream:
-    def __init__(self, camera_index=0, res_width=1920, res_height=1080, rotate_code=cv2.ROTATE_90_CLOCKWISE, target_fps=30):
+    def __init__(self, camera_index=0, res_width=1920, res_height=1080, rotate_code=cv2.ROTATE_90_CLOCKWISE):
         self.camera_index = camera_index
         self.res_width = res_width
         self.res_height = res_height
         self.rotate_code = rotate_code
-        self.target_fps = target_fps
         
         self.cam = self._init_camera()
         if self.cam is None:
@@ -47,7 +46,6 @@ class CameraStream:
                     self.frame = frame
             else:
                 print("Camera read failed")
-            time.sleep(1 / self.target_fps)
 
     def get_frame(self):
         with self.lock:

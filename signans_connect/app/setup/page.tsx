@@ -13,7 +13,6 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 
 // pages/index.js
 export default function Dashboard() {
-  const [loading, setLoading] = useState(false);
   const { steps, socketSteps  } = getStepStatus();
 
   {/* Manual Input */}
@@ -41,16 +40,7 @@ export default function Dashboard() {
     return () => {
       socket_cmd.current?.close();
     };
-  }, []);
-
-  useEffect(() => {
-    const lastLog = logs[logs.length - 1];
-    if (lastLog && !lastLog.toLowerCase().includes("ok")) {
-      setLoading(true);
-    } else {
-      setLoading(false);
-    }
-  }, [logs]);  
+  }, []); 
 
   const sendHomingCommand = (cmd: string) => {
     if (socket_cmd.current && socket_cmd.current.readyState === WebSocket.OPEN) {

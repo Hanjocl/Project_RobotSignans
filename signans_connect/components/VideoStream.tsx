@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 
 type VideoStreamProps = {
   imageUrl: string;
@@ -8,11 +9,16 @@ type VideoStreamProps = {
 
 const VideoStream: React.FC<VideoStreamProps> = ({ imageUrl }) => {
   return (
-    <img
-      src={imageUrl}
-      alt="Video stream"
-      className="w-full h-full object-contain"
-    />
+    // The parent div must have position relative and fixed size or flexible size
+    <div className="relative w-full h-full"> {/* example fixed height, adjust as needed */}
+      <Image
+        src={imageUrl}
+        alt="Video stream"
+        fill
+        style={{ objectFit: 'contain' }} // maintain aspect ratio inside container
+        unoptimized // optional, disables next/image optimization for external streams
+      />
+    </div>
   );
 };
 
