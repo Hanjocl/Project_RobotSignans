@@ -16,7 +16,7 @@ export default function TerminalPanel() {
 
   // Connect WebSocket
   useEffect(() => {
-    socket_cmd.current = new WebSocket("ws://robosignans2:8000/ws/commander/");
+    socket_cmd.current = new WebSocket("ws://localhost:8000/ws/commander/");
 
     socket_cmd.current.onmessage = (event) => {
       setLogs(prev => [...prev, event.data]);

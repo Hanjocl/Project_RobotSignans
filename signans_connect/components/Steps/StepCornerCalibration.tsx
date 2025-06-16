@@ -35,7 +35,7 @@ const StepCornerCalibration: React.FC<StepCornerCalibrationProps> = ({
 
   // Use effect to handle WebSocket connection and communication
   useEffect(() => {
-    socketRef.current = new WebSocket("ws://robosignans2:8000/ws/captureCornerPosition/");
+    socketRef.current = new WebSocket("ws://localhost:8000/ws/captureCornerPosition/");
 
     socketRef.current.onopen = () => {
       console.log("Corner position socket connected");

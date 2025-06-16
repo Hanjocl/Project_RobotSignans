@@ -10,8 +10,8 @@ export default function OverviewPage() {
       <div className="p-6 h-full">
         <h1 className="text-2xl font-bold mb-6">Camera Overview</h1>
         <div className="flex gap-6 h-full">
-          <VideoStream imageUrl="http://robosignans2:8000/video" />
-          <VideoStream imageUrl="http://robosignans2:8000/video_transformed" />
+          <VideoStream imageUrl="http://localhost:8000/video" />
+          <VideoStream imageUrl="http://localhost:8000/video_transformed" />
         </div>
       </div>
     </div>
