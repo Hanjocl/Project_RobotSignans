@@ -98,7 +98,7 @@ To make it run on boot:
     ```
 6. Create service file:
     
-    ```sudo nano /etc/systemd/system/startup-apps.service```
+    ```sudo nano /etc/systemd/system/robo_signans.service```
 
 7. Add the following (ctrl+0, enter, ctrl+x to save):
     ```
@@ -139,7 +139,7 @@ To make it run on boot:
 11. See real-tine logging:
 
     ```
-    journalctl -u startup-apps.service -f
+    journalctl -u robo_signans.service -f
     ```
 
 13. To stop service for development:
