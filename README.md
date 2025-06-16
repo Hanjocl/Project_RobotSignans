@@ -4,6 +4,10 @@ This git contains all the files to run a webserver front end (NextJS & DaisyUI) 
 The raspberry is used to create a user interface, two way communication with a ESP32 running Marlin 2.0 (see the following git for custom marlin version for robot Signas: ADD LINK)
 
 
+Naming convention fro the raspberry pi:     
+Hostname = RoboSignans[x]
+username = robosigans[x]
+
 Overview Setup:
 ---
 1. Update all Packages
