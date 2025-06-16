@@ -6,12 +6,21 @@ import numpy as np
 from state import camera_perspective_transfrom
 from Camera import CameraStream  # your CameraStream class file
 
-# Initialize camera stream once
-cam_stream = CameraStream()
+cam_stream = None  # Global reference to the camera stream
 
 # Resolution constants (make sure these match CameraStream settings)
 res_width = 1920
 res_height = 1080
+
+def initialize_camera():
+    global cam_stream
+    try:
+        cam_stream = CameraStream()
+    except RuntimeError as e:
+        print(f"[ERROR] Camera initialization failed: {e}")
+        cam_stream = None
+    return cam_stream
+
 
 def stream_raw_frames():
     while True:

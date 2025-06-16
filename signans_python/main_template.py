@@ -33,6 +33,11 @@ def init_states(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+origins = [ # DISABLED FOR NOW ==> Security wise I hope nobody will be fucking around with it...
+    "http://robosignans1",
+    "http://robosignans1:3000",
+]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

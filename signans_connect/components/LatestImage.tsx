@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import Image from 'next/image';
 
 interface LatestImageProps {
@@ -17,14 +17,31 @@ export default function LatestImage({
   pollInterval = 5000,
 }: LatestImageProps) {
   const [imgSrc, setImgSrc] = useState<string | null>(null);
-  const [lastModified, SetLastModified] = useState<number | null>(null);
+  const [lastModified, setLastModified] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [imgDimensions, setImgDimensions] = useState<{ width: number; height: number } | null>(null);
 
   const progressRef = useRef<NodeJS.Timeout | null>(null);
 
-  const fetchImageMeta = async () => {
+  const startProgress = useCallback(() => {
+    setProgress(0);
+    if (progressRef.current) clearInterval(progressRef.current);
+
+    const startTime = Date.now();
+
+    progressRef.current = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const percentage = Math.min((elapsed / pollInterval) * 100, 100);
+      setProgress(percentage);
+
+      if (percentage >= 100 && progressRef.current) {
+        clearInterval(progressRef.current);
+      }
+    }, 50);
+  }, [pollInterval]);
+
+  const fetchImageMeta = useCallback(async () => {
     setLoading(true);
     setProgress(0);
 
@@ -40,7 +57,7 @@ export default function LatestImage({
         img.onload = () => {
           setImgDimensions({ width: img.naturalWidth, height: img.naturalHeight });
           setImgSrc(newImgSrc);
-          SetLastModified(data.last_modified)
+          setLastModified(data.last_modified);
         };
       }
     } catch (err) {
@@ -49,24 +66,7 @@ export default function LatestImage({
       setLoading(false);
       startProgress();
     }
-  };
-
-  const startProgress = () => {
-    setProgress(0);
-    if (progressRef.current) clearInterval(progressRef.current);
-
-    const startTime = Date.now();
-
-    progressRef.current = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      const percentage = Math.min((elapsed / pollInterval) * 100, 100);
-      setProgress(percentage);
-
-      if (percentage >= 100 && progressRef.current) {
-        clearInterval(progressRef.current);
-      }
-    }, 50);
-  };
+  }, [metaUrl, imageUrl, title, lastModified, startProgress]);
 
   useEffect(() => {
     fetchImageMeta();
