@@ -4,11 +4,14 @@ This git contains all the files to run a webserver front end (NextJS & DaisyUI) 
 The raspberry is used to create a user interface, two way communication with a ESP32 running Marlin 2.0 (see the following git for custom marlin version for robot Signas: ADD LINK)
 
 
-Initial Setup:
+Overview Setup:
 ---
 1. Update all Packages
 2. Download python
 3. Download this git to Pi (I put it in the home dir)
+4. setup Frontend
+5. setup backend
+6. Set power over GPIO
 
 **Setup Front-end (NextJS)**
 1. Install NodeSource (see: https://github.com/nodesource/distributions?tab=readme-ov-file#installation-instructions)
@@ -150,4 +153,23 @@ To make it run on boot:
     sudo systemctl daemon-reload
     sudo systemctl status robo_signans.service
     ```
-
+Set Power Over GPIO:
+---
+1. Edit EEPROM:
+     ```
+     sudo rpi-eeprom-config --edit
+     ```
+2. Add the following line to the end:
+      ```
+      PSU_MAX_CURRENT=5000
+      ```
+3. Edit config.txt:
+     ```
+     sudo nano /boot/firmware/config.txt
+     ```
+4. Add the following line under [all]:
+   ```
+     usb_max_current_enable=1
+   ```
+5. Reboot system
+      
