@@ -3,14 +3,17 @@
 set -e
 set -x
 
-cd /home/robosignans2/Project_RobotSignans/signans_connect
+cd $HOME/Project_RobotSignans/signans_connect
+echo $HOME/Project_RobotSignans/signans_connect
 yarn install
 yarn start &
 
-sleep 1
-cd /home/robosignans2/Project_RobotSignans/signans_python
+
+cd $HOME/Project_RobotSignans/signans_python
+echo $HOME/Project_RobotSignans/signans_python
 source .venv/bin/activate
 python main.py > /tmp/main.log 2>&1 &
+echo "Starting back-end"
 
 
 
