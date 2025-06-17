@@ -1,5 +1,5 @@
 
-export const ROBO = "robosignans2";
+export const ROBO = "[robosignansX]";
 export const WS_BASE_URL = `ws://${ROBO}:8000`;
 
 export const WS_ENDPOINTS = {
