@@ -164,6 +164,7 @@ To make it run on boot:
     sudo raspi-config
     ```
     -> system options -> boot -> Console
+
     -> system options -> auto login -> enable
 
 
