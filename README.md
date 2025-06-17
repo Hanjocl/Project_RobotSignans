@@ -20,7 +20,7 @@ Overview Setup:
 **Setup Front-end (NextJS)**
 1. Install NodeSource (see: https://github.com/nodesource/distributions?tab=readme-ov-file#installation-instructions)
 2. Install Yarn (see: https://classic.yarnpkg.com/lang/en/docs/install/#windows-stable)
-3. Install Yarn more: with commands
+3. In the folder signans_connect, Install Yarn more: with commands
      ```
     yarn install
     yarn add next react react-dom
