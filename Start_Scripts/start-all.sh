@@ -9,7 +9,7 @@ echo "USER is $USER"
 echo "PATH is $PATH"
 
 cd $HOME/Project_RobotSignans/signans_connect
-yarn install
+#yarn install
 yarn start > /tmp/yarn.log 2>&1 &
 
 sleep 1
