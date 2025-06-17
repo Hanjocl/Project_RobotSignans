@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react'
+import { WS_ENDPOINTS } from "@/context/WebSockets";
 
 type StepCornerCalibrationProps = {
   handleStepComplete: (step: string) => void;
@@ -35,7 +36,7 @@ const StepCornerCalibration: React.FC<StepCornerCalibrationProps> = ({
 
   // Use effect to handle WebSocket connection and communication
   useEffect(() => {
-    socketRef.current = new WebSocket("ws://robosignans1:8000/ws/captureCornerPosition/");
+    socketRef.current = new WebSocket(WS_ENDPOINTS.captureCornerPosition);
 
     socketRef.current.onopen = () => {
       console.log("Corner position socket connected");

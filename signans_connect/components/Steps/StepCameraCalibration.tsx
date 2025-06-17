@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import VideoStream from '@/components/VideoStream';
+import { WS_ENDPOINTS, HTTP_ENDPOINTS } from "@/context/WebSockets";
+
 
 type StepCameraCalibrationProps = {
   handleStepComplete: (step: string) => void;
@@ -64,7 +66,7 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
   }, [draggedPoints]);
 
   useEffect(() => {
-    socketRef_Camera.current = new WebSocket("ws://robosignans1:8000/ws/captureCameraPosition/");
+    socketRef_Camera.current = new WebSocket(WS_ENDPOINTS.captureCameraPosition);
 
     socketRef_Camera.current.onopen = () => {
       console.log("Camera position socket connected");
@@ -186,7 +188,7 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
   };
 
   useEffect(() => {
-    socketRefPoints.current = new WebSocket("ws://robosignans1:8000/ws/camera_perspective_transform/");
+    socketRefPoints.current = new WebSocket(WS_ENDPOINTS.camera_perspective_transform);
 
     socketRefPoints.current.onopen = () => {
       console.log("Connected to points WebSocket");
@@ -212,7 +214,7 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
     <div className="max-h-[80vh] p-4">
       <div className="grid grid-cols-2 gap-4 w-full h-[70vh]">
         <div className="relative w-full h-full">
-          <VideoStream imageUrl="http://robosignans1:8000/video" />
+          <VideoStream imageUrl= {HTTP_ENDPOINTS.video} />
           <canvas
             ref={canvasRefOriginal}
             className="absolute top-0 left-0 w-full h-full"
@@ -224,7 +226,7 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
         </div>
 
         <div className="relative w-full h-full">
-          <VideoStream imageUrl="http://robosignans1:8000/video_transformed" />
+          <VideoStream imageUrl= {HTTP_ENDPOINTS.video_transformed} />
           <canvas
             ref={canvasRefTransformed}
             className="absolute top-0 left-0 w-full h-full"

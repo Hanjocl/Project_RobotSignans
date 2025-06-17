@@ -1,4 +1,6 @@
 import { createContext, useContext, useEffect, useState, useRef } from 'react';
+import { WS_ENDPOINTS } from "@/context/WebSockets";
+
 
 // Define the context types for steps state
 export type StepStatus = {
@@ -26,7 +28,7 @@ export const StepsProvider = ({ children }: { children: React.ReactNode }) => {
   const socketSteps = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    socketSteps.current = new WebSocket("ws://robosignans1:8000/ws/steps/");
+    socketSteps.current = new WebSocket(WS_ENDPOINTS.steps);
 
     socketSteps.current.onmessage = (event) => {
       const data = JSON.parse(event.data);

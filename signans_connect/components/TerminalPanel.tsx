@@ -3,6 +3,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import ProgressBar from './ProgressBar';
 import { getConnectionStatus } from "../context/ConnectedContext";
+import { WS_ENDPOINTS } from "@/context/WebSockets";
+
 
 export default function TerminalPanel() {
   const { state, connected } = getConnectionStatus();
@@ -16,7 +18,7 @@ export default function TerminalPanel() {
 
   // Connect WebSocket
   useEffect(() => {
-    socket_cmd.current = new WebSocket("ws://robosignans1:8000/ws/commander/");
+    socket_cmd.current = new WebSocket(WS_ENDPOINTS.commander);
 
     socket_cmd.current.onmessage = (event) => {
       setLogs(prev => [...prev, event.data]);

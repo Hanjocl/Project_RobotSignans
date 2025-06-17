@@ -1,13 +1,17 @@
 [Unit]
-Description=Start Next.js frontend and Python backend on boot
+Description=Robo Signans Startup Service
 After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
 User=[USERNAME]
 WorkingDirectory=/home/[USERNAME]
 ExecStart=/home/[USERNAME]/Project_RobotSignans/Start_Scripts/start-all.sh
-Restart=on-failure
+Restart=always
+RestartSec=1
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target

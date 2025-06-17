@@ -1,4 +1,6 @@
 import LatestImage from '@/components/LatestImage';
+import { HTTP_ENDPOINTS } from "@/context/WebSockets";
+
 
 export default function OverviewPage() {
   return (
@@ -6,14 +8,14 @@ export default function OverviewPage() {
       <h1 className="text-2xl font-bold mb-6">Robot Signals Overview</h1>
       <div className="flex gap-6">
         <LatestImage
-          metaUrl="http://robosignans1:8000/latest-plot-meta"
-          imageUrl="http://robosignans1:8000/latest-plot"
+          metaUrl= {HTTP_ENDPOINTS.latestPlotMeta}
+          imageUrl= {HTTP_ENDPOINTS.latestPlot}
           title="Latest Plot"
           pollInterval={5000} // poll every 7 seconds
         />
         <LatestImage
-          metaUrl="http://robosignans1:8000/latest-frame-meta"
-          imageUrl="http://robosignans1:8000/latest-frame"
+          metaUrl= {HTTP_ENDPOINTS.latestFrameMeta}
+          imageUrl= {HTTP_ENDPOINTS.latestFrame}
           title="Latest Frame"
           pollInterval={5000} // poll every 3 seconds
         />

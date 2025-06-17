@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { WS_ENDPOINTS } from './WebSockets';
 
 // Define the context types for connected state
 interface ConnectedContextType {
@@ -17,7 +18,7 @@ export const ConnectedProvider = ({ children }: { children: ReactNode }) => {
 
   // Connect to WebSocket server for connection status
   useEffect(() => {
-    const socket = new WebSocket("ws://robosignans1:8000/ws/connectionStatus/");
+    const socket = new WebSocket(WS_ENDPOINTS.connectionStatus);
 
     socket.onmessage = (event) => {
       const status = event.data === "True";

@@ -10,6 +10,8 @@ import StepCameraCalibration from "@/components/Steps/StepCameraCalibration";
 import StepCornerCalibration from "@/components/Steps/StepCornerCalibration";
 import TerminalPanel from "@/components/TerminalPanel";
 import ProtectedRoute from '@/components/ProtectedRoute';
+import { WS_ENDPOINTS } from "@/context/WebSockets";
+
 
 // pages/index.js
 export default function Dashboard() {
@@ -22,7 +24,7 @@ export default function Dashboard() {
   const socket_cmd = useRef<WebSocket | null>(null);
   useEffect(() => {
     // Connect to WebSocket server
-    socket_cmd.current= new WebSocket("ws://robosignans1:8000/ws/commander/");
+    socket_cmd.current= new WebSocket(WS_ENDPOINTS.commander);
 
     socket_cmd.current.onmessage = (event) => {
       setLogs((prevLogs) => [...prevLogs, `${event.data}`]);

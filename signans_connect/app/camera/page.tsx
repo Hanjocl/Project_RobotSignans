@@ -1,4 +1,6 @@
 import VideoStream from '@/components/VideoStream';
+import { HTTP_ENDPOINTS } from "@/context/WebSockets";
+
 
 export default function OverviewPage() {
   return (
@@ -10,8 +12,8 @@ export default function OverviewPage() {
       <div className="p-6 h-full">
         <h1 className="text-2xl font-bold mb-6">Camera Overview</h1>
         <div className="flex gap-6 h-full">
-          <VideoStream imageUrl="http://robosignans1:8000/video" />
-          <VideoStream imageUrl="http://robosignans1:8000/video_transformed" />
+          <VideoStream imageUrl= {HTTP_ENDPOINTS.video} />
+          <VideoStream imageUrl= {HTTP_ENDPOINTS.video_transformed} />
         </div>
       </div>
     </div>

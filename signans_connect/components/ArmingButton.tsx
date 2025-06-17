@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback  } from 'react';
 import { getConnectionStatus } from "../context/ConnectedContext";
 import { getStepStatus } from "../context/StepsContext";
+import { WS_ENDPOINTS } from "@/context/WebSockets";
 
 const ArmingButton = () => {
   const { state, setState, connected } = getConnectionStatus();
@@ -25,7 +26,7 @@ const ArmingButton = () => {
 
   useEffect(() => {
     // Connect to commander WebSocket
-    socket_cmd.current = new WebSocket("ws://robosignans1:8000/ws/commander/");
+    socket_cmd.current = new WebSocket(WS_ENDPOINTS.commander);
 
     return () => {
       socket_cmd.current?.close();
@@ -49,7 +50,7 @@ const ArmingButton = () => {
 
   useEffect(() => {
     if (connected) {
-      socketDraw.current = new WebSocket("ws://robosignans1:8000/ws/drawLoopArming/");
+      socketDraw.current = new WebSocket(WS_ENDPOINTS.drawLoopArming);
 
       socketDraw.current.onopen = () => {
         console.log("WebSocket connected.");
