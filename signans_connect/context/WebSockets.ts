@@ -1,5 +1,5 @@
 
-export const WS_BASE_URL = "ws://robosignans2:8000";
+export const WS_BASE_URL = "ws://robosignans1:8000";
 
 export const WS_ENDPOINTS = {
   connectionStatus: `${WS_BASE_URL}/ws/connectionStatus/`,
@@ -11,7 +11,7 @@ export const WS_ENDPOINTS = {
   steps: `${WS_BASE_URL}/ws/steps/`,
 };
 
-export const HTTP_BASE_URL = "http://robosignans2:8000";
+export const HTTP_BASE_URL = "http://robosignans1:8000";
 
 export const HTTP_ENDPOINTS = {
   video: `${HTTP_BASE_URL}/video`,
