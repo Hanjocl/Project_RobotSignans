@@ -157,6 +157,15 @@ To make it run on boot:
     sudo systemctl daemon-reload
     sudo systemctl status robo_signans.service
     ```
+14. Turn off GUI on boot:
+
+
+    ```
+    sudo raspi-config
+    ```
+    -> system options -> boot/auto login -> Console
+
+
 Set Power Over GPIO:
 ---
 1. Edit EEPROM:
