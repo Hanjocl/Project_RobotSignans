@@ -17,8 +17,8 @@ cd $HOME/Project_RobotSignans/signans_python
 source .venv/bin/activate
 echo "Activated venv"
 
-python main.py > $HOME/main.log 2>&1
-echo "main.py finished with exit code $?" >> $HOME/startup_debug.log
+python main.py > /tmp/main.log 2>&1
+echo "main.py finished with exit code $?" >> /tmp/startup_debug.log
 
 sleep 2
 # Wait here forever so the script doesn't exit

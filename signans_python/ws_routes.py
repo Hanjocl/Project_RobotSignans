@@ -353,8 +353,11 @@ def capture_image():
     filepath = os.path.join(folder, filename)
     cv2.imwrite(filepath, frame)
 
-    # Return image path or public URL (adjust URL as needed)
-    return {"filename": filename, "url": f"http://robosignans1:8000/captured/{filename}"}
+    # Build dynamic URL
+    base_url = str(request.base_url).rstrip('/')
+    image_url = f"{base_url}/captured/{filename}"
+
+    return {"filename": filename, "url": image_url}
 
 @router.get("/video")
 def video_feed_raw():
