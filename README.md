@@ -92,12 +92,17 @@ To make it run on boot:
     # Wait here forever so the script doesn't exit
     wait
     ```
-   
-3.Use this command to make it executable:
+5. Use this command to make it executable:
 
     ```
     chmod +x start-all.sh
     ```
+   
+3.Use this command to make it executable:
+
+```
+chmod +x start-all.sh
+```
 4. Test exectuable with:
 
     ```
@@ -105,9 +110,11 @@ To make it run on boot:
     ```
 6. Create service file:
     
-    ```sudo nano /etc/systemd/system/robo_signans.service```
+    ```
+   sudo nano /etc/systemd/system/robo_signans.service
+    ```
 
-7. Add the following (ctrl+0, enter, ctrl+x to save):
+8. Add the following (ctrl+0, enter, ctrl+x to save):
     ```
     [Unit]
     Description=Start Next.js frontend and Python backend on boot
@@ -123,7 +130,7 @@ To make it run on boot:
     [Install]
     WantedBy=multi-user.target
     ```
-8.  Reload services & check status:
+9.  Reload services & check status:
     ```
     sudo systemctl daemon-reload
     sudo systemctl enable robo_signans.service
@@ -137,10 +144,10 @@ To make it run on boot:
     sudo systemctl status robo_signans.service
     ```
     
-9. Reboot and hope it works:
+10. Reboot and hope it works:
 
     ```
-   sudo reboot
+    sudo reboot
     ```
 
 11. See real-tine logging:
