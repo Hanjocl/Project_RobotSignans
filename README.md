@@ -163,7 +163,8 @@ To make it run on boot:
     ```
     sudo raspi-config
     ```
-    -> system options -> boot/auto login -> Console
+    -> system options -> boot -> Console
+    -> system options -> auto login -> enable
 
 
 Set Power Over GPIO:
