@@ -25,7 +25,10 @@ Overview Setup:
     yarn install
     yarn add next react react-dom
     ```
-5. Start server in development mode:
+4. Duplicate WebSocket_ts_template and rename to WebSocket.ts:
+
+   Change ROBO varialble to the username stuff in URL (e.g. robosignans1:3000/setup -> ROBO=robosignans1)
+6. Start server in development mode:
     ```
     yarn dev
     ```
