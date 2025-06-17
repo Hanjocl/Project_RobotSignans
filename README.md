@@ -12,7 +12,7 @@ Overview Setup:
 ---
 1. Update all Packages
 2. Download python
-3. Download this git to Pi (I put it in the home dir)
+3. Download this git to Pi **(I put it in the home dir)**
 4. setup Frontend
 5. setup backend
 6. Set power over GPIO
