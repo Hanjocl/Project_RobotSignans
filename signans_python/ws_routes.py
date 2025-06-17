@@ -363,7 +363,6 @@ def capture_image():
 def video_feed_raw():
     return StreamingResponse(stream_raw_frames(), media_type="multipart/x-mixed-replace; boundary=frame")
 
-
 @router.get("/video_transformed")
 def video_feed_transformed():
     return StreamingResponse(stream_transformed_frames(), media_type="multipart/x-mixed-replace; boundary=frame")
@@ -385,8 +384,9 @@ async def websocket_endpoint(websocket: WebSocket):
         print("Client disconnected")
 
 
-PLOT_DIR = Path("/home/robosignans2/Project_RobotSignans/signans_python/plots")
-FRAME_DIR = Path("/home/robosignans2/Project_RobotSignans/signans_python/saved_frames")
+BASE_DIR = Path(__file__).resolve().parent
+PLOT_DIR = BASE_DIR /  "plots"
+FRAME_DIR = BASE_DIR / "saved_frames"
 
 @app.get("/latest-plot")
 def get_latest_image():
