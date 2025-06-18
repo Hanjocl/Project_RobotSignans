@@ -4,12 +4,14 @@ import time
 from log_manager import create_log
 
 class CameraStream:
-    def __init__(self, camera_index=0, res_width=1920, res_height=1080, rotate_code=cv2.ROTATE_90_CLOCKWISE, retry_interval=5):
+    def __init__(self, camera_index=0, res_width=1920, res_height=1080, rotate_code=cv2.ROTATE_90_CLOCKWISE, retry_interval=5, max_fps=30):
         self.camera_index = camera_index
         self.res_width = res_width
         self.res_height = res_height
         self.rotate_code = rotate_code
         self.retry_interval = retry_interval
+        self.max_fps = max_fps
+        self.frame_interval = 1.0 / max_fps  # seconds per frame
 
         self.cam = None
         self.frame = None
@@ -38,6 +40,8 @@ class CameraStream:
 
     def _update_frames(self):
         while self.running:
+            start_time = time.time()
+
             if self.cam is None or not self.cam.isOpened():
                 print("Trying to initialize camera...")
                 self.cam = self._init_camera()
@@ -63,6 +67,12 @@ class CameraStream:
             with self.lock:
                 self.frame = frame
                 self.read_error = None  # Clear error once a good frame is read
+
+            # Frame rate limiting
+            elapsed = time.time() - start_time
+            sleep_duration = self.frame_interval - elapsed
+            if sleep_duration > 0:
+                time.sleep(sleep_duration)
 
     def get_frame(self):
         if self.read_error:

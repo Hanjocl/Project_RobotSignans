@@ -32,6 +32,7 @@ def stream_raw_frames():
         frame_bytes = buffer.tobytes()
         yield (b"--frame\r\n"
                b"Content-Type: image/jpeg\r\n\r\n" + frame_bytes + b"\r\n")
+        time.sleep(0.1)
 
 
 # Define destination points for perspective transform (consistent with your previous code)
@@ -43,6 +44,7 @@ dst_points = np.array([
 ], dtype=np.float32)
 
 def apply_perspective_transform(frame, transform_perspective):
+
     h, w = frame.shape[:2]  # get actual frame size
     aspect_ratio = w / h
     
@@ -83,14 +85,16 @@ def stream_transformed_frames():
         frame_bytes = buffer.tobytes()
         yield (b"--frame\r\n"
                b"Content-Type: image/jpeg\r\n\r\n" + frame_bytes + b"\r\n")
+        time.sleep(0.1)
 
 async def get_transformed_frame():
+
     frame = cam_stream.get_frame()
     if frame is None:
         raise RuntimeError("ERROR: Failed to capture frame")
 
     transform_perspective = camera_perspective_transfrom.transform
-    transformed_frame = apply_perspective_transform(frame, transform_perspective, res_height, res_width)
+    transformed_frame = apply_perspective_transform(frame, transform_perspective)
 
     # Return just the transformed frame (not encoded)
     return transformed_frame

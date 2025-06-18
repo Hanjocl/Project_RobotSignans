@@ -18,7 +18,6 @@ def generate_gcodeLine(X=None, Y=None, Z=None, Feed=None):
 async def generate_gcodeFile(path, Feed = None):
     gcode = []
     gcode.append("G90")  # Absolute positioning
-    print("DEBUG FLAG")
     
     # Generate G-code for the 3D path (move through points)
     for point in path:

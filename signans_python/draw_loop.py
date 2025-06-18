@@ -8,18 +8,6 @@ from camera_capture import get_transformed_frame, save_frame_with_incrementing_f
 from log_manager import create_log
 from state import shared_positions as pos, movement_settings 
 
-async def main_test_loop():
-    while True:
-        print("Main draw loop running...")
-        await asyncio.sleep(2)
-
-async def main_debug_loop():
-    while True:
-        print(f"Going to camera position [{int(time.time())}]")
-        line = generate_gcodeLine(pos.cameraPosition[0], pos.cameraPosition[1], pos.cameraPosition[2])
-        print(f"Generated line: {line}")
-        await asyncio.sleep(1)
-
 async def wait_until_ready():
     response = await read_serial_lines()
     print(f"Response: {response}")
@@ -28,12 +16,12 @@ async def wait_until_ready():
         app.state.draw_task = None    
 
 async def main_draw_loop():
+    #Turn on absolute mode
+    write_to_esp32("G90")
+    create_log("Send: G90 (ok)")
+    await wait_until_ready()
     # Ensure we only start generating movements if conditions are met
     while True:
-        #Turn on absolute mode
-        write_to_esp32("G90")
-        create_log("Send: G90 (ok)")
-        await wait_until_ready()
 
         create_log("Going to camera position (ok)")
         line = generate_gcodeLine(pos.cameraPosition[0], pos.cameraPosition[1], pos.cameraPosition[2], movement_settings.normal_speed)

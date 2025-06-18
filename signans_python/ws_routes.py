@@ -15,7 +15,7 @@ from main import app
 from device_scanner import getConnectionStatus
 from serial_handler import reset_esp32, write_to_esp32, read_serial_lines, get_position
 from log_manager import create_log, get_logs, get_latest_log
-from draw_loop import main_draw_loop, main_test_loop, main_debug_loop
+from draw_loop import main_draw_loop
 from camera_capture import stream_raw_frames, stream_transformed_frames, cam_stream
 from state import camera_perspective_transfrom, movement_settings, set_camera_transform, save_state, load_state
 from gcode_commands import gcode_commands
@@ -37,23 +37,27 @@ async def websocket_status(websocket: WebSocket):
 @router.websocket("/ws/commander/")
 async def websocket_commander(websocket: WebSocket):
     await websocket.accept()
+    await asyncio.sleep(0.2)
+    
 
     pattern = r'\b(?:' + '|'.join(re.escape(cmd) for cmd in gcode_commands) + r')\b'
+    try:
+        # Send initial logs
+        for entry in get_logs():
+            await websocket.send_text(entry)
 
-    # Send initial logs
-    for entry in get_logs():
-        await websocket.send_text(entry)
+        while app.state.ser is None:
+            create_log(f"Looking for ESP32 on Serial")
+            await asyncio.sleep(4)
 
-    while app.state.ser is None:
-        create_log(f"ESP not found")
-        await asyncio.sleep(1)
-
-    # Flush any pending serial messages
-    create_log(f"Flushing serial (please wait, ok)")
-    await read_serial_lines(websocket, condition="ok", timeout=1)
-    create_log(f"Serial Flushed! (ok)")
-    await websocket.send_text(get_latest_log())
-
+    
+            # Flush any pending serial messages
+            await websocket.send_text("Flushing serial (please wait, ok)")
+            await read_serial_lines(websocket, condition="ok", timeout=1)
+            #await websocket.send_text("Serial Flushed! (ok)")
+    except WebSocketDisconnect:
+        print("Client disconnected from /commander")
+        return
     
     last_send_log = ""
     latest_log = get_latest_log()
@@ -124,7 +128,7 @@ async def websocket_commander(websocket: WebSocket):
                 if len(parts) == 2:
                     try:
                         movement_settings.normal_speed = int(parts[1])
-                        create_log(f"drawing_speed updated = {movement_settings.normal_speed}")
+                        create_log(f"drawing_speed updated = {movement_settings.normal_speed} (ok)")
                     except ValueError:
                         create_log("Invalid FEED_D value received (not a number, ok)")
                 else:
@@ -271,6 +275,8 @@ async def websocket_capture_position(websocket: WebSocket):
 
                 # Store as a list [x, y, z]
                 captured_position = await get_position()
+                print("Camera Position: ")
+                print(captured_position)
 
                 shared_positions.cameraPosition = captured_position
 
@@ -339,25 +345,6 @@ async def websocket_drawLoopArming(websocket: WebSocket):
                 await websocket.send_text("ERROR")
         except WebSocketDisconnect:
             print("Client disconnected.")
-
-@router.post("/capture")
-def capture_image():
-    frame = cam_stream.get_frame()
-    if frame is None:
-        return {"error": "Failed to capture image"}
-
-    # Save the image with timestamp
-    filename = f"captured_{int(time.time())}.jpg"
-    folder = "captured_images"
-    os.makedirs(folder, exist_ok=True)
-    filepath = os.path.join(folder, filename)
-    cv2.imwrite(filepath, frame)
-
-    # Build dynamic URL
-    base_url = str(request.base_url).rstrip('/')
-    image_url = f"{base_url}/captured/{filename}"
-
-    return {"filename": filename, "url": image_url}
 
 @router.get("/video")
 def video_feed_raw():

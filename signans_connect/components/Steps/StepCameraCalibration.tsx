@@ -96,12 +96,19 @@ const StepCameraCalibration: React.FC<StepCameraCalibrationProps> = ({
 
   const handleCapture = () => {
     if (socketRef_Camera.current?.readyState === WebSocket.OPEN) {
+      socketRef_Camera.current.send(
+        JSON.stringify({
+          command: "capture",
+          positionName: "cameraPosition",
+        })
+      );
+      
       handleStepComplete("Camera Calibration");
     } else {
       console.error("WebSocket not open.");
     }
   };
-
+  
   useEffect(() => {
     const canvas = canvasRefOriginal.current;
     if (!canvas) return;

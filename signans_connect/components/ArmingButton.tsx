@@ -34,9 +34,9 @@ const ArmingButton = () => {
   }, []);
 
   useEffect(() => {
-    // Listener for Escape key to reset ESP32
+    // Listener for Shift + Escape key to reset ESP32
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && event.shiftKey) {
         ResetESP32();
       }
     };
