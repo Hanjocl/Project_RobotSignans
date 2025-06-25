@@ -39,8 +39,23 @@ async def get_3d_path_from_image(image, P0, P1, P2, P3, segment_length=4.0):
         path_3d = np.array([bilinear_interpolate(u, v) for u, v in path_normalized], dtype=np.float32)
 
         # --- Resample 3D path ---
-        def resample_path_3d(path, segment_length):
+        def resample_path_3d(path, segment_length, min_segment_length=0.1):
+            # Compute differences and distances between consecutive points
             diffs = np.diff(path, axis=0)
+            dists = np.linalg.norm(diffs, axis=1)
+
+            # Filter out segments that are too small by merging points
+            # We will keep only points where distance to previous is >= min_segment_length
+
+            filtered_points = [path[0]]
+            for i, dist in enumerate(dists):
+                if dist >= min_segment_length:
+                    filtered_points.append(path[i + 1])
+
+            filtered_points = np.array(filtered_points)
+
+            # Now resample based on segment_length on filtered points
+            diffs = np.diff(filtered_points, axis=0)
             dists = np.linalg.norm(diffs, axis=1)
             cumulative = np.insert(np.cumsum(dists), 0, 0)
             total_length = cumulative[-1]
@@ -50,8 +65,10 @@ async def get_3d_path_from_image(image, P0, P1, P2, P3, segment_length=4.0):
 
             new_path = np.empty((num_points, 3), dtype=np.float32)
             for i in range(3):
-                new_path[:, i] = np.interp(new_distances, cumulative, path[:, i])
+                new_path[:, i] = np.interp(new_distances, cumulative, filtered_points[:, i])
+
             return new_path
+
 
         path_resampled_3d = resample_path_3d(path_3d, segment_length)
 
@@ -63,7 +80,7 @@ async def get_3d_path_from_image(image, P0, P1, P2, P3, segment_length=4.0):
 
 def image_to_path(image):
     # Ensure image is binary (0 or 255)
-    _, binary = cv2.threshold(image, 150, 255, cv2.THRESH_BINARY)
+    _, binary = cv2.threshold(image, 80, 160, cv2.THRESH_BINARY)
     
     # Invert image for thinning (thinning expects foreground=1)
     binary_inv = cv2.bitwise_not(binary)
