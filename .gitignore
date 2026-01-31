@@ -1,1 +1,7 @@
+# Node / TypeScript environment-specific
+package.json
+tsconfig.json
+yarn.lock
+
+# Project-specific generated file
 signans_connect/context/WebSockets.ts
