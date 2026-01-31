@@ -63,7 +63,7 @@ async def get_3d_path_from_image(image, P0, P1, P2, P3, segment_length=4.0):
 
 def image_to_path(image):
     # Ensure image is binary (0 or 255)
-    _, binary = cv2.threshold(image, 150, 255, cv2.THRESH_BINARY)
+    _, binary = cv2.threshold(image, 80, 170, cv2.THRESH_BINARY)
     
     # Invert image for thinning (thinning expects foreground=1)
     binary_inv = cv2.bitwise_not(binary)

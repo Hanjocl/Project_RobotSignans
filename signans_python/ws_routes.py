@@ -94,6 +94,7 @@ async def websocket_commander(websocket: WebSocket):
             
             elif data == "DEBUG":
                 set_all()
+                create_log("DEBUG MODE ACTIVATED: All parameters have been set to random point... (ok)")
                 create_log("DEBUG MODE ACTIVATED: know what this does before using it... (ok)")
                 await websocket.send_text(get_latest_log())
                 continue

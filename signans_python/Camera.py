@@ -4,7 +4,7 @@ import time
 from log_manager import create_log
 
 class CameraStream:
-    def __init__(self, camera_index=0, res_width=1920, res_height=1080, rotate_code=cv2.ROTATE_90_CLOCKWISE, retry_interval=5, max_fps=30):
+    def __init__(self, camera_index=0, res_width=1920, res_height=1080, rotate_code=cv2.ROTATE_90_CLOCKWISE, retry_interval=10, max_fps=30):
         self.camera_index = camera_index
         self.res_width = res_width
         self.res_height = res_height
@@ -46,7 +46,7 @@ class CameraStream:
                 print("Trying to initialize camera...")
                 self.cam = self._init_camera()
                 if self.cam is None:
-                    create_log(f"Camera initialization failed. Try re-plugging camera and reload site")
+                    create_log(f"Camera initialization failed. Try re-plugging camera and reload site (ok)")
                     time.sleep(self.retry_interval)
                     continue
                 else:
