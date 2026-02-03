@@ -1,85 +1,111 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  forwardRef,
+  useImperativeHandle,
+} from 'react';
 import ProgressBar from './ProgressBar';
 import { getConnectionStatus } from "../context/ConnectedContext";
 import { WS_ENDPOINTS } from "@/context/WebSockets";
 
+export type CommanderAPI = {
+  sendHomingCommand: (cmd: string) => void;
+  sendRelativeMove: (cmd: string) => void;
+  sendManualCommand: (cmd: string) => void;
+};
 
-export default function TerminalPanel() {
+const AXIS_VALUES: Record<'X' | 'Y' | 'Z', number[]> = {
+  X: [80, 40, 20],
+  Y: [80, 40, 20],
+  Z: [20, 10, 5],
+};
+
+const TerminalPanel = forwardRef<CommanderAPI>(function TerminalPanel(_, ref) {
   const { state, connected } = getConnectionStatus();
 
   const [logs, setLogs] = useState<string[]>([]);
-  const [manualInput, setManualInput] = useState<string>('');
+  const [manualInput, setManualInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const socket_cmd = useRef<WebSocket | null>(null);
 
+  const socketRef = useRef<WebSocket | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
 
-  // Connect WebSocket
+  // ---------------- WebSocket lifecycle ----------------
   useEffect(() => {
-    socket_cmd.current = new WebSocket(WS_ENDPOINTS.commander);
+    if (socketRef.current) return;
 
-    socket_cmd.current.onmessage = (event) => {
-      setLogs(prev => [...prev, event.data]);
+    const ws = new WebSocket(WS_ENDPOINTS.commander);
+    socketRef.current = ws;
+
+    ws.onmessage = (e) => {
+      setLogs((prev) => [...prev, e.data]);
     };
 
-    socket_cmd.current.onclose = () => {
-      setLogs(prev => [...prev, "Disconnected from server -> please reload window after reconnecting"]);
+    ws.onclose = () => {
+      setLogs((prev) => [...prev, "Disconnected from server"]);
     };
 
-    return () => {
-      socket_cmd.current?.close();
+    ws.onerror = () => {
+      setLogs((prev) => [...prev, "WebSocket error"]);
     };
   }, []);
 
-  // Auto scroll logs
+  // ---------------- Commander helpers ----------------
+  const sendRelativeMoveInternal = (cmd: string) => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.send("G91");
+      socketRef.current.send(cmd);
+      socketRef.current.send("G90");
+    }
+  };
+
+  const sendHomingInternal = (cmd: string) => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      alert(
+        `A homing move (${cmd}) will be sent.\nMAKE SURE THE ARM IS NOT CONNECTED TO THE MOTORS.`
+      );
+      socketRef.current.send(cmd);
+    }
+  };
+
+  // ---------------- expose API to Dashboard ----------------
+  useImperativeHandle(ref, () => ({
+    sendHomingCommand: sendHomingInternal,
+    sendRelativeMove: sendRelativeMoveInternal,
+    sendManualCommand(cmd: string) {
+      if (socketRef.current?.readyState === WebSocket.OPEN && !loading) {
+        socketRef.current.send(cmd);
+      }
+    },
+  }));
+
+  // ---------------- auto-scroll + loading ----------------
   useEffect(() => {
     if (logRef.current) {
-      logRef.current.scrollTo({ top: logRef.current.scrollHeight, behavior: 'smooth' });
+      logRef.current.scrollTo({
+        top: logRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
     }
 
-    const lastLog = logs[logs.length - 1];
-    if (lastLog && !lastLog.toLowerCase().includes("ok")) {
-      setLoading(true);
-    } else {
-      setLoading(false);
-    }
+    const last = logs[logs.length - 1];
+    setLoading(!!last && !last.toLowerCase().includes("ok"));
   }, [logs]);
-
-  const sendManualCommand = () => {
-    if (socket_cmd.current && socket_cmd.current.readyState === WebSocket.OPEN && !loading) {
-      socket_cmd.current.send(manualInput);
-      setManualInput('');
-    } else if (loading) {
-      console.log("Wait for next movement to complete");
-    } else {
-      console.log("WebSocket is not open");
-    }
-  };
-
-  const sendHomingCommand = (cmd: string) => {
-    if (socket_cmd.current?.readyState === WebSocket.OPEN) {
-      alert(`A homing move (${cmd}) will be sent.\nMAKE SURE THE ARM IS NOT CONNECTED TO THE MOTORS.\n\nTo CANCEL, reload the page.`);
-      socket_cmd.current.send(cmd);
-    }
-  };
-
-  const sendRelativeMove = (cmd: string) => {
-    if (socket_cmd.current?.readyState === WebSocket.OPEN) {
-      socket_cmd.current.send("G91");
-      socket_cmd.current.send(cmd);
-      socket_cmd.current.send("G90");
-    }
-  };
 
   const canSend = connected && state !== "Drawing";
 
+  // ---------------- UI ----------------
   return (
-    <div className="flex flex-col space-y-4 h-full">
-      {/* Terminal Output */}
+    <div className="flex flex-col space-y-4 h-full w-full">
+      {/* -------- Terminal -------- */}
       <div className="bg-base-200 p-4 rounded flex flex-col h-full">
-        <div ref={logRef} className="log-output max-h-[60vh] overflow-auto text-sm">
+        <div
+          ref={logRef}
+          className="log-output max-h-[55vh] overflow-auto text-sm"
+        >
           <pre className="whitespace-pre-wrap">{logs.join('\n')}</pre>
         </div>
 
@@ -87,56 +113,80 @@ export default function TerminalPanel() {
         <div className="mt-auto flex gap-2">
           <input
             type="text"
-            placeholder={!connected ? 'Please connect a device' : 'For manual input only'}
-            className={`input w-full ${!connected ? 'input-disabled' : 'input-outline input-error'}`}
+            placeholder={!connected ? 'Please connect a device' : 'Manual G-code'}
+            className={`input w-full ${
+              !connected ? 'input-disabled' : 'input-outline input-error'
+            }`}
             value={manualInput}
             onChange={(e) => setManualInput(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                if (!canSend) return alert("Cannot send commands while drawing!");
-                sendManualCommand();
+              if (e.key === 'Enter' && canSend) {
+                socketRef.current?.send(manualInput);
+                setManualInput('');
               }
             }}
           />
           <button
-            className={`btn justify-start w-1/5 ${!canSend || loading ? 'btn-disabled' : 'btn-outline btn-error'}`}
+            className={`btn w-1/5 ${
+              !canSend || loading ? 'btn-disabled' : 'btn-outline btn-error'
+            }`}
             onClick={() => {
-              if (!canSend) return alert("Cannot send commands while drawing!");
-              sendManualCommand();
+              socketRef.current?.send(manualInput);
+              setManualInput('');
             }}
           >
             Send
           </button>
         </div>
+
         <ProgressBar animate={loading} />
       </div>
 
-      {/* Axis Control Panel */}
-      <div className="flex flex-col flex-grow gap-4 bg-base-200 p-4 rounded h-1/3 w-full">
-        {['X', 'Y', 'Z'].map((axis) => (
-          <div key={axis} className="flex items-center gap-4 h-1/3 w-full">
-            {[-10, -5, -1].map(val => (
-              <button key={val} className="btn btn-outline w-1/12"
-                onClick={() => canSend ? sendRelativeMove(`G0 ${axis}${val}`) : alert("Cannot send commands while drawing!")}>
-                {val}
+      {/* -------- Quick Move Panel -------- */}
+      <div className="bg-base-200 p-4 rounded space-y-3">
+        <div className="font-semibold text-sm">Quick Move</div>
+
+        {(Object.keys(AXIS_VALUES) as Array<'X' | 'Y' | 'Z'>).map((axis) => (
+          <div key={axis} className="flex items-center gap-4">
+            {AXIS_VALUES[axis].map((val) => (
+              <button
+                key={`${axis}-neg-${val}`}
+                className="btn btn-outline btn-sm w-16"
+                disabled={!canSend}
+                onClick={() => sendRelativeMoveInternal(`G0 ${axis}-${val}`)}
+              >
+                -{val}
               </button>
             ))}
-            <div className="text-center w-full min-w-[80px]">Position of Axis {axis}</div>
-            {[1, 5, 10].map(val => (
-              <button key={val} className="btn btn-outline w-1/12"
-                onClick={() => canSend ? sendRelativeMove(`G0 ${axis}${val}`) : alert("Cannot send commands while drawing!")}>
+
+            <div className="flex-1 text-center text-sm">
+              Axis {axis}
+            </div>
+
+            {AXIS_VALUES[axis].map((val) => (
+              <button
+                key={`${axis}-pos-${val}`}
+                className="btn btn-outline btn-sm w-16"
+                disabled={!canSend}
+                onClick={() => sendRelativeMoveInternal(`G0 ${axis}${val}`)}
+              >
                 +{val}
               </button>
             ))}
+
             <button
-              className="btn btn-sm btn-info w-1/6"
-              onClick={() => canSend ? sendHomingCommand(`G28 ${axis}`) : alert("Cannot send commands while drawing!")}
+              className="btn btn-info btn-sm w-20"
+              disabled={!canSend}
+              onClick={() => sendHomingInternal(`G28 ${axis}`)}
             >
-              home
+              Home
             </button>
           </div>
         ))}
       </div>
+
     </div>
   );
-}
+});
+
+export default TerminalPanel;
