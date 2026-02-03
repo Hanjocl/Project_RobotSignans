@@ -42,4 +42,4 @@ next-env.d.ts
 yarn.lock
 nodesource_setup.sh
 
-/context/WebSockets.tsx
+/context/WebSockets.ts
