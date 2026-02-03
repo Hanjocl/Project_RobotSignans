@@ -1,5 +1,4 @@
 # Node / TypeScript environment-specific
-package.json
 tsconfig.json
 yarn.lock
 
